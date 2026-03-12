@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: f1-api
+Version: 0.1.0
+Summary: FastAPI app for F1 Race Intelligence
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: f1-core>=0.1.0
+
+# f1-api
+
+Minimal FastAPI app for the monorepo.

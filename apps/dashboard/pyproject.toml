@@ -1,0 +1,17 @@
+[project]
+name = "f1-dashboard"
+version = "0.1.0"
+description = "Streamlit dashboard for F1 Race Intelligence"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.32",
+    "f1-core>=0.1.0",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["f1_dashboard*"]

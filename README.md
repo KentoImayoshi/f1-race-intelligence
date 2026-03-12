@@ -1,44 +1,40 @@
-# F1 Race Intelligence AI
+# F1 Race Intelligence AI Monorepo
 
-Pragmatic, incremental F1 intelligence pipeline. Start small, keep data flow explicit, and evolve in layers.
+This repo is a Python monorepo with modular packages and apps. It focuses on a minimal, typed foundation that is easy to evolve.
 
-## Local setup
-
-1. Create and activate a virtual environment.
+## Bootstrap (local dev)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+bash scripts/bootstrap_dev.sh
 ```
 
-2. Install dependencies.
+## Run API
 
 ```bash
-pip install -e ".[dev]"
+uvicorn f1_api.main:app --reload
 ```
 
-3. Create your environment file.
+## Run Dashboard
 
 ```bash
-cp .env.example .env
+streamlit run apps/dashboard/src/f1_dashboard/app.py
 ```
 
-## Run the API
+## Run Tests
 
 ```bash
-uvicorn app.main:app --reload
+pytest
 ```
 
-## Verify
+## Layout
 
-```bash
-curl http://127.0.0.1:8000/
-curl http://127.0.0.1:8000/health
-```
-
-## Structure
-
-- `app/` application code
-- `data/` raw/processed/artifacts
-- `tests/` tests
-- `scripts/` local scripts
+- `apps/api` FastAPI app
+- `apps/dashboard` Streamlit app
+- `packages/core` shared config/logging
+- `packages/ingestion` placeholder
+- `packages/features` placeholder
+- `packages/models` placeholder
+- `packages/insights` placeholder
+- `packages/llm` placeholder
+- `data/` raw, processed, features
+- `infra/` docker and ci scaffolding (empty)

@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/f1_core/__init__.py
+src/f1_core/config.py
+src/f1_core/logging.py
+src/f1_core.egg-info/PKG-INFO
+src/f1_core.egg-info/SOURCES.txt
+src/f1_core.egg-info/dependency_links.txt
+src/f1_core.egg-info/requires.txt
+src/f1_core.egg-info/top_level.txt

@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+src/f1_insights/__init__.py
+src/f1_insights.egg-info/PKG-INFO
+src/f1_insights.egg-info/SOURCES.txt
+src/f1_insights.egg-info/dependency_links.txt
+src/f1_insights.egg-info/top_level.txt

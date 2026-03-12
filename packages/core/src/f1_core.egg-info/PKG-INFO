@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: f1-core
+Version: 0.1.0
+Summary: Shared core utilities for F1 Race Intelligence
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.6
+Requires-Dist: pydantic-settings>=2.2
+
+# f1-core
+
+Shared core utilities (config, logging).
