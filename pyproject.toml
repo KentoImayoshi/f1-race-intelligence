@@ -1,31 +1,14 @@
-[project]
-name = "f1-race-intelligence-ai"
-version = "0.1.0"
-description = "Pragmatic, incremental F1 intelligence pipeline"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "fastapi>=0.110",
-    "uvicorn[standard]>=0.27",
-    "pydantic>=2.6",
-    "pydantic-settings>=2.2",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "ruff>=0.3",
-]
+[tool.pytest.ini_options]
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
 
+target-version = "py311"
+
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
-[tool.pytest.ini_options]
-pythonpath = ["."]
-
-[tool.setuptools.packages.find]
-include = ["app*"]
-exclude = ["data*"]
+[tool.black]
+line-length = 100
+target-version = ["py311"]
