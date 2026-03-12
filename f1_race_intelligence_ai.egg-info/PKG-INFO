@@ -1,0 +1,58 @@
+Metadata-Version: 2.4
+Name: f1-race-intelligence-ai
+Version: 0.1.0
+Summary: Pragmatic, incremental F1 intelligence pipeline
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: pydantic>=2.6
+Requires-Dist: pydantic-settings>=2.2
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: ruff>=0.3; extra == "dev"
+
+# F1 Race Intelligence AI
+
+Pragmatic, incremental F1 intelligence pipeline. Start small, keep data flow explicit, and evolve in layers.
+
+## Local setup
+
+1. Create and activate a virtual environment.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+2. Install dependencies.
+
+```bash
+pip install -e ".[dev]"
+```
+
+3. Create your environment file.
+
+```bash
+cp .env.example .env
+```
+
+## Run the API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+## Verify
+
+```bash
+curl http://127.0.0.1:8000/
+curl http://127.0.0.1:8000/health
+```
+
+## Structure
+
+- `app/` application code
+- `data/` raw/processed/artifacts
+- `tests/` tests
+- `scripts/` local scripts

@@ -2,25 +2,37 @@
 
 Pragmatic, incremental F1 intelligence pipeline. Start small, keep data flow explicit, and evolve in layers.
 
-## Quick start
+## Local setup
 
-1. Create a virtual environment and install deps.
+1. Create and activate a virtual environment.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
 ```
 
-2. Run the API.
+2. Install dependencies.
+
+```bash
+pip install -e ".[dev]"
+```
+
+3. Create your environment file.
+
+```bash
+cp .env.example .env
+```
+
+## Run the API
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-3. Check health.
+## Verify
 
 ```bash
+curl http://127.0.0.1:8000/
 curl http://127.0.0.1:8000/health
 ```
 
