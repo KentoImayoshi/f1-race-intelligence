@@ -14,7 +14,7 @@ router = APIRouter(prefix=f"{settings.api_v1_prefix}")
 class PipelineRequest(BaseModel):
     source: str = Field("seed", description="Data source, e.g. seed or fastf1")
     year: int | None = Field(None, description="Season year (required for fastf1)")
-    grand_prix: str | None = Field(None, description="Grand prix name or round")
+    round_value: str | None = Field(None, alias="round", description="Grand prix name or round")
     session: str | None = Field(None, description="Session code, e.g. R, Q, FP1")
 
 
@@ -24,7 +24,7 @@ def run_session_baseline(request: PipelineRequest) -> dict[str, Any]:
         return run_session_baseline_pipeline(
             source=request.source,
             year=request.year,
-            grand_prix=request.grand_prix,
+            round_value=request.round_value,
             session=request.session,
         )
     except Exception as exc:

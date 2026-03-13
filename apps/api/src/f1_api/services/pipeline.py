@@ -18,12 +18,12 @@ INSIGHTS_DIR = Path("data/insights")
 LLM_DIR = Path("data/llm")
 
 
-def run_session_baseline_pipeline(*, source: str = "seed", year: int | None = None, grand_prix: str | None = None, session: str | None = None) -> dict[str, object]:
+def run_session_baseline_pipeline(*, source: str = "seed", year: int | None = None, round_value: str | None = None, session: str | None = None) -> dict[str, object]:
     raw_path = ingest_raw_session_results(
         output_dir=RAW_DIR,
         source=source,
         year=year,
-        grand_prix=grand_prix,
+        grand_prix=round_value,
         session=session,
     )
 

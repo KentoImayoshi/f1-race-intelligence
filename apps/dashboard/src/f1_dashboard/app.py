@@ -47,12 +47,12 @@ if run_button:
         st.error("Round must be positive.")
         state.pipeline_result = None
     else:
-        payload = {
-            "source": source,
-            "year": year,
-            "grand_prix": str(round_value),
-            "session": session_code,
-        }
+    payload = {
+        "source": source,
+        "year": year,
+        "round": str(round_value),
+        "session": session_code,
+    }
         try:
             response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
             response.raise_for_status()
