@@ -17,6 +17,12 @@ def _parse_args() -> argparse.Namespace:
         default=Path("data/raw"),
         help="Directory to write raw parquet artifacts.",
     )
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="seed",
+        help="Ingestion source (seed or fastf1).",
+    )
     return parser.parse_args()
 
 
@@ -24,7 +30,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     args = _parse_args()
 
-    output_path = ingest_raw_session_results(output_dir=args.output_dir)
+    output_path = ingest_raw_session_results(output_dir=args.output_dir, source=args.source)
     print(f"Wrote {output_path}")
     return 0
 
