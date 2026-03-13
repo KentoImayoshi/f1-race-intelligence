@@ -276,3 +276,4 @@ f1-race-intelligence-ai/
 - Consult `PLANS.md` before planning multi-stage work; the current stage, gates, and done conditions live there.
 - Preserve the package boundaries described in `docs/ARCHITECTURE.md`; do not mix dashboards or APIs directly into ingestion packages.
 - Favor small, milestone-based commits that match the plan, so each layer stays explicit and incremental.
+- Respect the orchestration rule: only `apps/api/src/f1_api/services/pipeline.py` may import multiple downstream packages and coordinate ingestion → llm; all other services and the dashboard stay on the consumer side.

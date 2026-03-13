@@ -56,3 +56,8 @@ F1 Race Intelligence AI is a monorepo-grade intelligence pipeline. It exists to 
 - Expand insights and explanation algorithms while keeping contracts explicit.
 - Add observability/instrumentation hooks around each pipeline step.
 - Harden the API (authentication, throttling) once the local flow stabilizes.
+
+## Orchestration guardrail
+- The pipeline service (`apps/api/src/f1_api/services/pipeline.py`) is intentionally the only component that imports multiple downstream packages and coordinates ingestion → processing → features → models → insights → llm. It owns the single POST `/api/v1/pipeline/run-session-baseline` endpoint and is the explicit heel for cross-layer flows.
+- Read-only API routes (insights, models, explanations) must consume artifacts, not orchestrate additional packages. If an API needs more data, it should either read the relevant artifact via the shared paths or call the pipeline endpoint.
+- The dashboard remains a thin HTTP client of the API; it must neither import nor call services under `packages/` directly.

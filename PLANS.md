@@ -8,6 +8,7 @@
 1. **What to do:** add better logging, tests, config validation, and basic docs around observability.
 2. **Decision gate:** pipeline artifacts are reproducible, tests pass (`pytest` + dashboard syntax checks), and architecture docs are in place (this commit).
 3. **Done:** documented flows, consistent config, predictable error handling, and a maintenance-ready README.
+4. **Boundary reminder:** future work must preserve the guarded wiring: only the pipeline service orchestrates downstream packages. Read-only APIs and dashboard must stay on the consumer side of this boundary.
 
 ## Stage after that — expand intelligence
 - **Goals:** add new data sources (FastF1), richer modelling, and confidence-aware explanations.

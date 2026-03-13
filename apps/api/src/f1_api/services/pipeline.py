@@ -19,7 +19,10 @@ INSIGHTS_DIR = insights_dir()
 LLM_DIR = llm_dir()
 
 
-def run_session_baseline_pipeline(*, source: str = "seed", year: int | None = None, round_value: str | None = None, session: str | None = None) -> dict[str, object]:
+def run_session_baseline_pipeline(
+    *, source: str = "seed", year: int | None = None, round_value: str | None = None, session: str | None = None
+) -> dict[str, object]:
+    """The single allowed orchestrator that wires all downstream packages."""
     raw_path = ingest_raw_session_results(
         output_dir=RAW_DIR,
         source=source,
