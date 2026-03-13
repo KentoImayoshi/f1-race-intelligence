@@ -23,7 +23,31 @@ streamlit run apps/dashboard/src/f1_dashboard/app.py
 ## Run Tests
 
 ```bash
-pytest
+.venv/bin/pytest
+```
+
+### Test Conventions
+
+- Unit tests live in `tests/unit/` and are marked with `@pytest.mark.unit`.
+- Integration tests live in `tests/integration/` and are marked with `@pytest.mark.integration`.
+
+### Run Test Subsets
+
+```bash
+.venv/bin/pytest -m unit
+```
+
+```bash
+.venv/bin/pytest -m integration
+```
+
+### HTTP Integration Tests
+
+HTTP-style integration tests are skipped by default in this environment.
+To run them explicitly:
+
+```bash
+RUN_HTTP_INTEGRATION=1 .venv/bin/pytest -m integration
 ```
 
 ## Layout
