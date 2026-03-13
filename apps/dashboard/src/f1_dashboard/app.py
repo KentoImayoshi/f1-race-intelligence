@@ -8,14 +8,14 @@ from streamlit import session_state as state
 
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
-    value = None
-    secrets = getattr(st, "secrets", None)
-    if secrets:
-        try:
-            value = secrets.get(secret_key)
-        except AttributeError:
-            value = None
-    if not value:
+    from streamlit.secrets import SecretNotFoundError
+
+    value: str | None = None
+    try:
+        value = st.secrets[secret_key]
+    except (KeyError, SecretNotFoundError, OSError):
+        value = None
+    if value is None:
         value = os.getenv(env_var, default)
     return value.rstrip("/")
 
