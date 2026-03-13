@@ -8,12 +8,15 @@ from streamlit import session_state as state
 
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
-    from streamlit.secrets import SecretNotFoundError
+    try:
+        from streamlit.errors import StreamlitSecretNotFoundError
+    except ImportError:
+        StreamlitSecretNotFoundError = OSError  # type: ignore[assignment]
 
     value: str | None = None
     try:
         value = st.secrets[secret_key]
-    except (KeyError, SecretNotFoundError, OSError):
+    except (KeyError, StreamlitSecretNotFoundError, FileNotFoundError, OSError):
         value = None
     if value is None:
         value = os.getenv(env_var, default)
