@@ -33,6 +33,12 @@ def build_session_features(*, processed_path: Path, output_dir: Path) -> Path:
 
     records = []
     for index, row in enumerate(table.to_pylist()):
+        _require_value(row.get("season"), "season", index=index)
+        _require_value(row.get("round"), "round", index=index)
+        _require_text(row.get("session"), "session", index=index)
+        _require_text(row.get("driver_code"), "driver_code", index=index)
+        _require_value(row.get("lap_time_ms"), "lap_time_ms", index=index)
+
         position_numeric = _require_position(row.get("position"), index=index)
         lap_time_ms = row.get("lap_time_ms")
         has_lap_time = bool(lap_time_ms) and lap_time_ms > 0
@@ -82,3 +88,15 @@ def _require_position(value: object, *, index: int) -> int:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Invalid position value (row {index})") from exc
+
+
+def _require_value(value: object, field: str, *, index: int) -> None:
+    if value is None:
+        raise ValueError(f"Missing required value: {field} (row {index})")
+
+
+def _require_text(value: object, field: str, *, index: int) -> None:
+    if value is None:
+        raise ValueError(f"Missing required value: {field} (row {index})")
+    if not str(value).strip():
+        raise ValueError(f"Missing required value: {field} (row {index})")
