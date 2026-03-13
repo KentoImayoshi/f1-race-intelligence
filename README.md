@@ -68,6 +68,12 @@ The real FastF1 ingestion test is skipped by default. To run it explicitly:
 RUN_FASTF1_INTEGRATION=1 .venv/bin/pytest -m integration -k fastf1_real
 ```
 
+Recommended real-data parameters for manual runs:
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --source fastf1 --year 2024 --grand-prix 1 --session R
+```
+
 ## Layout
 
 - `apps/api` FastAPI app

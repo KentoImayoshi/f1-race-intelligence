@@ -152,9 +152,9 @@ def map_fastf1_results(
 ) -> list[RawSessionResult]:
     mapped: list[RawSessionResult] = []
 
-    for row in results:
-        driver_code = _require_driver_code(row.get("Driver"))
-        position = _require_int(row.get("Position"), "Position")
+    for index, row in enumerate(results):
+        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        position = _require_int(row.get("Position"), "Position", index=index)
         lap_time_ms = _parse_time_to_ms(row.get("Time"))
 
         mapped.append(
@@ -184,18 +184,18 @@ def _records_from_results(results: object) -> Sequence[Mapping[str, object]]:
     raise TypeError("FastF1 results object must be a list of dicts or a pandas DataFrame.")
 
 
-def _require_driver_code(value: object) -> str:
+def _require_driver_code(value: object, *, index: int) -> str:
     if value is None:
-        raise ValueError("Driver code is required")
+        raise ValueError(f"Driver code is required (row {index})")
     driver = str(value).strip()
     if not driver:
-        raise ValueError("Driver code is required")
+        raise ValueError(f"Driver code is required (row {index})")
     return driver
 
 
-def _require_int(value: object, label: str) -> int:
+def _require_int(value: object, label: str, *, index: int) -> int:
     if value is None:
-        raise ValueError(f"{label} is required")
+        raise ValueError(f"{label} is required (row {index})")
     return int(value)
 
 
