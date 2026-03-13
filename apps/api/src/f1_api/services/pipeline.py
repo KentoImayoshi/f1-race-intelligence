@@ -8,14 +8,15 @@ from f1_insights.insights import build_top_driver_insights
 from f1_llm.explanations import build_top_driver_explanations
 from f1_models.baseline import build_baseline_driver_scores
 from f1_processing.processing import process_session_results
+from f1_core.paths import raw_dir, processed_dir, features_dir, models_dir, insights_dir, llm_dir
 
 
-RAW_DIR = Path("data/raw")
-PROCESSED_DIR = Path("data/processed")
-FEATURES_DIR = Path("data/features")
-MODELS_DIR = Path("data/models")
-INSIGHTS_DIR = Path("data/insights")
-LLM_DIR = Path("data/llm")
+RAW_DIR = raw_dir()
+PROCESSED_DIR = processed_dir()
+FEATURES_DIR = features_dir()
+MODELS_DIR = models_dir()
+INSIGHTS_DIR = insights_dir()
+LLM_DIR = llm_dir()
 
 
 def run_session_baseline_pipeline(*, source: str = "seed", year: int | None = None, round_value: str | None = None, session: str | None = None) -> dict[str, object]:

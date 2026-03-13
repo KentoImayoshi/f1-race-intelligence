@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Iterable
 
 import pyarrow.parquet as pq
 
-MODELS_PATH = Path("data/models/baseline_session_driver_scores.parquet")
+from f1_core.paths import baseline_driver_scores_path
+
+MODELS_PATH = baseline_driver_scores_path()
 
 
 def load_baseline_driver_scores(

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Iterable
 
 import pyarrow.parquet as pq
 
-INSIGHTS_PATH = Path("data/insights/insights_session_top_drivers.parquet")
+from f1_core.paths import insights_session_top_drivers_path
+
+INSIGHTS_PATH = insights_session_top_drivers_path()
 
 
 def load_top_driver_insights(

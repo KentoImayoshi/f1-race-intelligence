@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Iterable
 
 import pyarrow.parquet as pq
 
-EXPLANATIONS_PATH = Path("data/llm/explanations_session_top_drivers.parquet")
+from f1_core.paths import explanations_session_top_drivers_path
+
+EXPLANATIONS_PATH = explanations_session_top_drivers_path()
 
 
 def load_top_driver_explanations(

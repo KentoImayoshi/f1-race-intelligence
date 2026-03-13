@@ -41,3 +41,7 @@ data/processed/*
 
 data/features/*
 !data/features/.gitkeep
+
+data/models/*
+data/insights/*
+data/llm/*
