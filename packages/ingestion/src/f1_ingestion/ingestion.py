@@ -118,16 +118,23 @@ def _fastf1_session_results(
     if year is None or grand_prix is None or session is None:
         raise ValueError("year, grand_prix, and session are required for fastf1 ingestion")
 
-    try:
-        import fastf1
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "FastF1 is not installed. Install it with `pip install fastf1` "
-            "and re-run with --source fastf1."
-        ) from exc
+    fastf1_module = globals().get("fastf1")
+    if fastf1_module is None:
+        try:
+            import fastf1 as fastf1_module
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "FastF1 is not installed. Install it with `pip install fastf1` "
+                "and re-run with --source fastf1."
+            ) from exc
 
-    session_obj = fastf1.get_session(year, grand_prix, session)
-    session_obj.load()
+    try:
+        session_obj = fastf1_module.get_session(year, grand_prix, session)
+        session_obj.load()
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            "FastF1 session load failed. Check year, grand_prix, and session inputs."
+        ) from exc
 
     results = getattr(session_obj, "results", None)
     if results is None:
