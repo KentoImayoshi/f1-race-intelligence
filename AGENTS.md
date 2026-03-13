@@ -271,3 +271,8 @@ f1-race-intelligence-ai/
 ├─ README.md
 ├─ pyproject.toml
 └─ AGENTS.md
+
+## Governance updates
+- Consult `PLANS.md` before planning multi-stage work; the current stage, gates, and done conditions live there.
+- Preserve the package boundaries described in `docs/ARCHITECTURE.md`; do not mix dashboards or APIs directly into ingestion packages.
+- Favor small, milestone-based commits that match the plan, so each layer stays explicit and incremental.
