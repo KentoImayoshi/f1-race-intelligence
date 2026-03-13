@@ -13,4 +13,4 @@ python -m pip install -e packages/llm
 python -m pip install -e apps/api
 python -m pip install -e apps/dashboard
 
-python -m pip install pytest ruff black
+python -m pip install pytest ruff black httpx
