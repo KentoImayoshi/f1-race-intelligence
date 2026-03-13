@@ -1,12 +1,25 @@
 import json
+import os
 from typing import MutableMapping
 import streamlit as st
 import requests
 
 from streamlit import session_state as state
 
-API_BASE_URL = st.secrets.get("api_base_url", "http://localhost:8000").rstrip("/")
-API_PREFIX = st.secrets.get("api_prefix", "/api/v1").rstrip("/")
+
+def _config_value(secret_key: str, env_var: str, default: str) -> str:
+    value = None
+    try:
+        value = st.secrets.get(secret_key)
+    except Exception:
+        value = None
+    if not value:
+        value = os.getenv(env_var, default)
+    return value.rstrip("/")
+
+
+API_BASE_URL = _config_value("api_base_url", "F1_API_BASE_URL", "http://localhost:8000")
+API_PREFIX = _config_value("api_prefix", "F1_API_PREFIX", "/api/v1")
 PIPELINE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/pipeline/run-session-baseline"
 BASELINE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/models/baseline-driver-scores"
 INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/insights/top-drivers"
