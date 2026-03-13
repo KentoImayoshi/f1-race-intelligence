@@ -9,10 +9,12 @@ from streamlit import session_state as state
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
     value = None
-    try:
-        value = st.secrets.get(secret_key)
-    except Exception:
-        value = None
+    secrets = getattr(st, "secrets", None)
+    if secrets:
+        try:
+            value = secrets.get(secret_key)
+        except AttributeError:
+            value = None
     if not value:
         value = os.getenv(env_var, default)
     return value.rstrip("/")
@@ -32,25 +34,29 @@ st.title("F1 Race Intelligence Dashboard")
 with st.sidebar.form(key="pipeline_form"):
     st.subheader("Run Session Baseline Pipeline")
     source = st.selectbox("Source", ["seed", "fastf1"], index=0)
-    year = st.number_input("Year", min_value=2000, max_value=2100, value=2024)
-    grand_prix = st.text_input("Grand Prix / Round", value="1")
-    session_code = st.text_input("Session", value="R")
+    year = st.number_input("Year", min_value=1950, max_value=2026, value=2024)
+    round_value = st.number_input("Round", min_value=1, value=1, step=1)
+    session_code = st.selectbox("Session", ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"], index=6)
     run_button = st.form_submit_button("Run pipeline")
 
 if run_button:
-    payload = {
-        "source": source,
-        "year": year,
-        "grand_prix": grand_prix,
-        "session": session_code,
-    }
-    try:
-        response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
-        response.raise_for_status()
-        state.pipeline_result = response.json()
-    except requests.RequestException as exc:
-        st.error(f"Pipeline request failed: {exc}")
+    if round_value <= 0:
+        st.error("Round must be positive.")
         state.pipeline_result = None
+    else:
+        payload = {
+            "source": source,
+            "year": year,
+            "grand_prix": str(round_value),
+            "session": session_code,
+        }
+        try:
+            response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
+            response.raise_for_status()
+            state.pipeline_result = response.json()
+        except requests.RequestException as exc:
+            st.error(f"Pipeline request failed: {exc}")
+            state.pipeline_result = None
 
 pipeline_result = state.get("pipeline_result")
 
@@ -59,7 +65,7 @@ if pipeline_result:
     st.json(pipeline_result)
 
     query_params: MutableMapping[str, str | int] = {}
-    for key, value in (("season", year), ("round", grand_prix), ("session", session_code)):
+    for key, value in (("season", year), ("round", round_value), ("session", session_code)):
         if value:
             query_params[key] = value
 
