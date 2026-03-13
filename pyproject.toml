@@ -2,6 +2,10 @@
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "unit: fast, isolated tests",
+    "integration: app-level or HTTP-style tests",
+]
 
 [tool.ruff]
 line-length = 100

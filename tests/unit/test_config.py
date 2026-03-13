@@ -1,6 +1,9 @@
+import pytest
+
 from f1_core.config import Settings
 
 
+@pytest.mark.unit
 def test_settings_defaults() -> None:
     settings = Settings()
 
