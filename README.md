@@ -26,6 +26,16 @@ streamlit run apps/dashboard/src/f1_dashboard/app.py
 .venv/bin/pytest
 ```
 
+## Run Ingestion (raw)
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --output-dir data/raw
+```
+
+Expected artifact:
+
+- `data/raw/raw_session_results.parquet`
+
 ### Test Conventions
 
 - Unit tests live in `tests/unit/` and are marked with `@pytest.mark.unit`.
