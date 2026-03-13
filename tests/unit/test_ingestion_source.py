@@ -11,6 +11,6 @@ def test_seed_source_returns_parquet(tmp_path) -> None:
 
 
 @pytest.mark.unit
-def test_fastf1_source_errors_without_dependency(tmp_path) -> None:
-    with pytest.raises(RuntimeError, match="FastF1 is not installed"):
+def test_fastf1_source_requires_parameters(tmp_path) -> None:
+    with pytest.raises(ValueError, match="year, grand_prix, and session are required"):
         ingest_raw_session_results(output_dir=tmp_path, source="fastf1")

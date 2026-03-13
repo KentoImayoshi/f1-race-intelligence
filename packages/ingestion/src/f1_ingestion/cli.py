@@ -23,6 +23,9 @@ def _parse_args() -> argparse.Namespace:
         default="seed",
         help="Ingestion source (seed or fastf1).",
     )
+    parser.add_argument("--year", type=int, help="F1 season year (fastf1 only).")
+    parser.add_argument("--grand-prix", type=str, help="Grand Prix name or round number (fastf1 only).")
+    parser.add_argument("--session", type=str, help="Session code, e.g. R, Q, FP1 (fastf1 only).")
     return parser.parse_args()
 
 
@@ -30,7 +33,13 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     args = _parse_args()
 
-    output_path = ingest_raw_session_results(output_dir=args.output_dir, source=args.source)
+    output_path = ingest_raw_session_results(
+        output_dir=args.output_dir,
+        source=args.source,
+        year=args.year,
+        grand_prix=args.grand_prix,
+        session=args.session,
+    )
     print(f"Wrote {output_path}")
     return 0
 
