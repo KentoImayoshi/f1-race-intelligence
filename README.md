@@ -60,6 +60,14 @@ To run them explicitly:
 RUN_HTTP_INTEGRATION=1 .venv/bin/pytest -m integration
 ```
 
+### FastF1 Integration Test (opt-in)
+
+The real FastF1 ingestion test is skipped by default. To run it explicitly:
+
+```bash
+RUN_FASTF1_INTEGRATION=1 .venv/bin/pytest -m integration -k fastf1_real
+```
+
 ## Layout
 
 - `apps/api` FastAPI app
