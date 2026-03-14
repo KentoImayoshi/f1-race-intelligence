@@ -7,6 +7,8 @@ WORKDIR /app
 COPY apps/api /app/apps/api
 COPY packages /app/packages
 
+EXPOSE 8000
+
 RUN pip install --upgrade pip setuptools
 RUN pip install --no-cache-dir \
     -e /app/packages/core \
