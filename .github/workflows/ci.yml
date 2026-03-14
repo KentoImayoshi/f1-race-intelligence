@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  quality-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir ruff black
+          pip install --no-cache-dir \
+            -e packages/core \
+            -e packages/ingestion \
+            -e packages/processing \
+            -e packages/features \
+            -e packages/models \
+            -e packages/insights \
+            -e packages/llm \
+            -e apps/api
+
+      - name: Lint and format check
+        run: |
+          ruff check .
+          black --check .
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Build API container
+        run: docker build --file infra/docker/api/Dockerfile --tag f1-api:ci .
+
+      - name: Build dashboard container
+        run: docker build --file infra/docker/dashboard/Dockerfile --tag f1-dashboard:ci .
