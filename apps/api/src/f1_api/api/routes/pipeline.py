@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from f1_api.api.schemas import PipelineRunResponse
 from f1_api.services.pipeline import run_session_baseline_pipeline
 from f1_core.config import settings
 
@@ -18,8 +17,8 @@ class PipelineRequest(BaseModel):
     session: str | None = Field(None, description="Session code, e.g. R, Q, FP1")
 
 
-@router.post("/pipeline/run-session-baseline")
-def run_session_baseline(request: PipelineRequest) -> dict[str, Any]:
+@router.post("/pipeline/run-session-baseline", response_model=PipelineRunResponse)
+def run_session_baseline(request: PipelineRequest) -> PipelineRunResponse:
     try:
         return run_session_baseline_pipeline(
             source=request.source,
