@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+  dashboard:
+    build:
+      context: .
+      dockerfile: infra/docker/dashboard/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    environment:
+      F1_API_BASE_URL: "http://api:8000"
+      F1_API_PREFIX: "/api/v1"

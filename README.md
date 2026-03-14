@@ -20,6 +20,14 @@ uvicorn f1_api.main:app --reload
 streamlit run apps/dashboard/src/f1_dashboard/app.py
 ```
 
+## Run with Docker Compose
+
+The minimal `docker compose up --build` workflow starts both the API (port 8000) and the Streamlit dashboard (port 8501) together. The compose manifest lives at the repository root and points at the Dockerfiles under `infra/docker`. The dashboard service has `F1_API_BASE_URL` set to `http://api:8000` so it can reach the API via the internal compose network.
+
+```bash
+docker compose up --build
+```
+
 ## Run Tests
 
 ```bash
