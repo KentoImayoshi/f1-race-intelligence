@@ -46,3 +46,18 @@ jobs:
 
       - name: Build dashboard container
         run: docker build --file infra/docker/dashboard/Dockerfile --tag f1-dashboard:ci .
+
+      - name: Docker Compose smoke test
+        run: |
+          docker compose -f docker-compose.yml up -d --build
+          trap 'docker compose -f docker-compose.yml down' EXIT
+
+          for i in $(seq 1 6); do
+            if curl -sSf http://localhost:8000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "API health endpoint did not respond in time"
+          exit 1
