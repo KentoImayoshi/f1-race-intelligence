@@ -31,6 +31,44 @@ INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/insights/top-drivers"
 EXPLANATIONS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/explanations/session-top-drivers"
 
 
+def _format_request_error(exc: requests.RequestException) -> str:
+    response = getattr(exc, "response", None)
+    if response is not None:
+        code = response.status_code
+        reason = response.reason or "Unknown"
+        detail = response.text.strip() or "No body returned"
+        return f"{code} {reason}: {detail}"
+    return str(exc)
+
+
+def _fetch_json(endpoint: str, params: MutableMapping[str, str | int], timeout: int = 10) -> tuple[list[dict[str, object]] | None, str | None]:
+    try:
+        response = requests.get(endpoint, params=params, timeout=timeout)
+        response.raise_for_status()
+        return response.json(), None
+    except requests.RequestException as exc:
+        return None, _format_request_error(exc)
+
+
+def _render_table_section(
+    container: st.delta_generator.DeltaGenerator,
+    title: str,
+    endpoint: str,
+    params: MutableMapping[str, str | int],
+    empty_message: str,
+) -> None:
+    with container:
+        st.subheader(title)
+        data, error = _fetch_json(endpoint, params)
+        if error:
+            st.error(f"{title} fetch failed: {error}")
+            return
+        if not data:
+            st.info(empty_message)
+            return
+        st.table(data)
+
+
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
 st.title("F1 Race Intelligence Dashboard")
 
@@ -43,9 +81,12 @@ with st.sidebar.form(key="pipeline_form"):
     run_button = st.form_submit_button("Run pipeline")
 
 if run_button:
+    state.pipeline_error = None
+    state.pipeline_status = "running"
     if round_value <= 0:
-        st.error("Round must be positive.")
+        state.pipeline_error = "Round must be positive."
         state.pipeline_result = None
+        state.pipeline_status = "error"
     else:
         payload = {
             "source": source,
@@ -53,52 +94,58 @@ if run_button:
             "round": str(round_value),
             "session": session_code,
         }
-        try:
-            response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
-            response.raise_for_status()
-            state.pipeline_result = response.json()
-        except requests.RequestException as exc:
-            st.error(f"Pipeline request failed: {exc}")
-            state.pipeline_result = None
+        with st.spinner("Running pipeline baseline…"):
+            try:
+                response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
+                response.raise_for_status()
+                state.pipeline_result = response.json()
+                state.pipeline_status = "success"
+            except requests.RequestException as exc:
+                state.pipeline_error = f"Pipeline request failed: {_format_request_error(exc)}"
+                state.pipeline_result = None
+                state.pipeline_status = "error"
 
+pipeline_status = state.get("pipeline_status")
+pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
 
-if pipeline_result:
+if pipeline_status == "running":
+    st.info("Pipeline run in progress…")
+elif pipeline_error:
+    st.error(pipeline_error)
+elif pipeline_result:
     st.success("Pipeline completed")
     st.json(pipeline_result)
+else:
+    st.info("Run the pipeline above to populate artifacts and dashboards.")
 
+if pipeline_result:
     query_params: MutableMapping[str, str | int] = {}
     for key, value in (("season", year), ("round", round_value), ("session", session_code)):
         if value:
             query_params[key] = value
 
+    st.divider()
     columns = st.columns(3)
 
-    with columns[0]:
-        st.subheader("Baseline scores")
-        try:
-            baseline = requests.get(BASELINE_ENDPOINT, params=query_params, timeout=10)
-            baseline.raise_for_status()
-            st.table(baseline.json())
-        except requests.RequestException as exc:
-            st.error(f"Baseline fetch failed: {exc}")
-
-    with columns[1]:
-        st.subheader("Top driver insights")
-        try:
-            insights = requests.get(INSIGHTS_ENDPOINT, params=query_params, timeout=10)
-            insights.raise_for_status()
-            st.table(insights.json())
-        except requests.RequestException as exc:
-            st.error(f"Insights fetch failed: {exc}")
-
-    with columns[2]:
-        st.subheader("Grounded explanations")
-        try:
-            explanations = requests.get(EXPLANATIONS_ENDPOINT, params=query_params, timeout=10)
-            explanations.raise_for_status()
-            st.table(explanations.json())
-        except requests.RequestException as exc:
-            st.error(f"Explanations fetch failed: {exc}")
-else:
-    st.info("Run the pipeline above to populate artifacts and dashboards.")
+    _render_table_section(
+        columns[0],
+        "Baseline scores",
+        BASELINE_ENDPOINT,
+        query_params,
+        "No baseline scores available for the selected filters.",
+    )
+    _render_table_section(
+        columns[1],
+        "Top driver insights",
+        INSIGHTS_ENDPOINT,
+        query_params,
+        "No insights are available for the chosen session yet.",
+    )
+    _render_table_section(
+        columns[2],
+        "Grounded explanations",
+        EXPLANATIONS_ENDPOINT,
+        query_params,
+        "No explanations were generated for this session.",
+    )
