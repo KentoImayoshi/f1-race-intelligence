@@ -1,18 +1,23 @@
 # Technical release checklist
 
-## Already in place
-- **API:** FastAPI v1 routes are explicit about request/response contracts, include health/pipeline/insights/models/explanations, and rely on typed Pydantic schemas. Logging honors `LOG_LEVEL` and `ENV=production` by default.
-- **Dashboard:** Streamlit UI runs as a thin API client with hardened loading/error states, clear empty messaging, and workflow-driven sections backed by config that points to the Compose API.
-- **Docker/Compose:** Both API and dashboard images build with all runtime deps, expose their ports, and restart with `unless-stopped`; Compose maps 8000/8501 and uses headless Streamlit defaults.
-- **CI:** GitHub Actions workflow runs `ruff`, `black`, `pytest`, builds both containers, and performs a Compose smoke test hitting `/health`.
-- **Config/env:** `.env.example` documents production defaults (`ENV`, `DEBUG`, `LOG_LEVEL`, `API_V1_PREFIX`) and Compose surfaces them to containers.
+## Already done
+- **API:** FastAPI app with typed routes, health/pipeline/insights endpoints, Pydantic schemas, and logging honoring `LOG_LEVEL`/`ENV`.
+- **Dashboard:** Streamlit UI acts as a thin client to the API, has defensive loading/error states, and shares configuration via Compose.
+- **Docker/Compose:** API and dashboard buildable images, exposed ports (8000/8501), restart policies, and Compose wiring of shared env vars and volumes.
+- **CI:** GitHub Actions run linting (`ruff`, `black`), `pytest`, container builds, and a Compose smoke test hitting the API health endpoint.
+- **Config/env:** `.env.example` documents production defaults and Compose injects those values; runtime honors overrides for host, port, and logging.
 
-## Should verify before real deployment
-- Confirm `.env` values match the target environment (API host/port, dashboard API base URL, logging level) and secrets live outside the repo.
-- Exercise the Compose smoke check (`docker compose up --build`, `curl /health`, `docker compose down`) on the deployment host to ensure networking and volumes are sane.
-- Ensure data artifacts (raw/processed/features/models/insights/llm folders) are persisted or backed up if required by the chosen storage strategy.
+## Should do before real deployment
+- Verify the environment-specific `.env` (host/port, API base URL, secrets) is stored outside the repo and matches the deployment network.
+- Run `docker compose up --build`, hit `/health` from the target host, then `docker compose down` to confirm container networking/volumes perform as expected.
+- Confirm persistence/backups for the `data/` folders the pipeline relies on (raw, processed, features, insights) before traffic arrives.
+
+## Current known limitations
+- Data ingestion is local only; there is no scheduler, retries, or remote storage configured yet.
+- Observability is limited to basic logging—no metrics, tracing, or alerting that would be needed in production.
+- No multi-environment CI/CD path exists; the current workflow stops after smoke tests without deployment steps.
 
 ## Future improvements
-- Add structured observability (request tracing, dashboards, metrics) once a real deployment surface is defined.
-- Introduce real CI deployment staging and multi-env configuration (e.g., environment-specific overrides, secret management) to replace the current `.env` defaults.
-- Harden data ingestion (scheduling/retries) and pipeline orchestration beyond the local Compose runner when scaling past a single machine.
+- Add structured observability (metrics, tracing, dashboards) once a deployment surface is chosen.
+- Implement environment-aware config overrides/secret stores and explicit staging vs. production gates.
+- Harden ingestion/analysis orchestration beyond Compose, e.g., scheduled jobs or lightweight workflow runners.
