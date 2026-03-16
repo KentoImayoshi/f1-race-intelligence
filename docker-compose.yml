@@ -3,15 +3,24 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api/Dockerfile
-    command: ["uvicorn", "f1_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command:
+      - uvicorn
+      - f1_api.main:app
+      - --host
+      - "${API_HOST:-0.0.0.0}"
+      - --port
+      - "${API_PORT:-8000}"
     ports:
       - "8000:8000"
     environment:
       PYTHONUNBUFFERED: "1"
-      ENV: "production"
-      DEBUG: "false"
-      LOG_LEVEL: "INFO"
+      ENV: "${ENV:-production}"
+      DEBUG: "${DEBUG:-false}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      API_V1_PREFIX: "${API_V1_PREFIX:-/api/v1}"
     restart: unless-stopped
+    volumes:
+      - ./data:/app/data
   dashboard:
     build:
       context: .
@@ -21,10 +30,10 @@ services:
     ports:
       - "8501:8501"
     environment:
-      F1_API_BASE_URL: "http://api:8000"
-      F1_API_PREFIX: "/api/v1"
+      F1_API_BASE_URL: "${F1_API_BASE_URL:-http://api:${API_PORT:-8000}}"
+      F1_API_PREFIX: "${API_V1_PREFIX:-/api/v1}"
       STREAMLIT_SERVER_HEADLESS: "1"
-      STREAMLIT_SERVER_PORT: "8501"
-      ENV: "production"
-      DEBUG: "false"
+      STREAMLIT_SERVER_PORT: "${STREAMLIT_SERVER_PORT:-8501}"
+      ENV: "${ENV:-production}"
+      DEBUG: "${DEBUG:-false}"
     restart: unless-stopped

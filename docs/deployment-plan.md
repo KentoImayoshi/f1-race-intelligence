@@ -9,9 +9,10 @@
 - A single VM is cheap, easy to provision, and fits the small-scope “first deployment” goal while remaining production-like (network isolation, persistent volumes).
 
 ## Required changes before deploy
-1. **Environment files:** create a deployment-specific env file (e.g., `.env.production`) documented from `.env.example`, hardcoding the API host/port defaults, dashboard API base URL, and leaving placeholders for secrets that must be stored out of repo.
-2. **Persistence documentation:** ensure `data/` (raw, processed, features, artifacts) paths are created on the VM with clear ownership/backup instructions so Compose volumes map to real disks instead of ephemeral containers.
-3. **Prove Compose stack:** run `docker compose config` and the previously documented smoke test (`docker compose up --build`, `curl http://localhost:8000/health`, `docker compose down`) locally and capture any quirks so the VM provisioning script can reproduce them.
+1. **Environment files:** publish `config/env/vm.env.sample` as the production template, still using `.env.example` for the local workflow, and document copying it to `.env.production` while keeping secrets outside the repo.
+2. **Persistence documentation:** outline VM steps that create the `data/` folders, link a persistent `/srv/f1-intel/data` mount into `./data`, and explain the backup cadence so Compose volumes do not vanish when containers restart.
+3. **Prove Compose stack:** run `docker compose config` plus the smoke test (`docker compose up --build`, `curl http://localhost:8000/health`, `docker compose down`) locally and save any quirks so VM provisioning can reproduce them.
+4. **Guide reference:** store the minimal VM workflow (env file, data mount, Compose validation) in `docs/vm-deployment-readme.md` for rapid onboarding.
 
 ## Deployment sequence
 1. Provision the VM (Ubuntu 24.04), install Docker & Compose, and harden SSH/firewall (allow ports 22, 8000, 8501, and restrict others).
