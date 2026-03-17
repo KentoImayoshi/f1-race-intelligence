@@ -1,5 +1,5 @@
-import sys
 from pathlib import Path
+import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
