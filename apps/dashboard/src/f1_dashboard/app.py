@@ -1,8 +1,9 @@
 import json
 import os
 from typing import MutableMapping
-import streamlit as st
+
 import requests
+import streamlit as st
 
 from streamlit import session_state as state
 
@@ -41,7 +42,11 @@ def _format_request_error(exc: requests.RequestException) -> str:
     return str(exc)
 
 
-def _fetch_json(endpoint: str, params: MutableMapping[str, str | int], timeout: int = 10) -> tuple[list[dict[str, object]] | None, str | None]:
+def _fetch_json(
+    endpoint: str,
+    params: MutableMapping[str, str | int],
+    timeout: int = 10,
+) -> tuple[list[dict[str, object]] | None, str | None]:
     try:
         response = requests.get(endpoint, params=params, timeout=timeout)
         response.raise_for_status()

@@ -26,7 +26,9 @@ def ingest_raw_session_results(
     """Write a raw session results parquet file to the output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    ingested_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    ingested_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
     records = [
         record.to_record()
         for record in _load_session_results(

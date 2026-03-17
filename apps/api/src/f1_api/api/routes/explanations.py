@@ -9,7 +9,10 @@ from f1_core.config import settings
 router = APIRouter(prefix=f"{settings.api_v1_prefix}")
 
 
-@router.get("/explanations/session-top-drivers", response_model=list[SessionTopDriverExplanationRow])
+@router.get(
+    "/explanations/session-top-drivers",
+    response_model=list[SessionTopDriverExplanationRow],
+)
 def get_top_driver_explanations(
     season: int | None = Query(None),
     round_number: int | None = Query(None, alias="round"),

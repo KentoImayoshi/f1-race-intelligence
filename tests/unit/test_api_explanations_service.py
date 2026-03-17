@@ -1,8 +1,9 @@
+import sys
+from pathlib import Path
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT / "apps/api/src"))
@@ -27,8 +28,18 @@ def test_load_top_driver_explanations_orders_and_limits(tmp_path):
     path = tmp_path / "explanations.parquet"
     table = pa.Table.from_pylist(
         [
-            {"season": 2024, "round": 1, "session": "R", "explanation_generated_at": "2026-03-13T00:01:00Z"},
-            {"season": 2024, "round": 1, "session": "R", "explanation_generated_at": "2026-03-13T00:00:00Z"},
+            {
+                "season": 2024,
+                "round": 1,
+                "session": "R",
+                "explanation_generated_at": "2026-03-13T00:01:00Z",
+            },
+            {
+                "season": 2024,
+                "round": 1,
+                "session": "R",
+                "explanation_generated_at": "2026-03-13T00:00:00Z",
+            },
         ]
     )
     pq.write_table(table, path)

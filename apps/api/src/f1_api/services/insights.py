@@ -42,7 +42,11 @@ def load_top_driver_insights(
 
 
 def _filter_rows(
-    rows: Iterable[dict[str, object]], *, season: int | None, round_number: int | None, session: str | None
+    rows: Iterable[dict[str, object]],
+    *,
+    season: int | None,
+    round_number: int | None,
+    session: str | None,
 ) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     for row in rows:

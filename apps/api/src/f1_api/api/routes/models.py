@@ -15,7 +15,7 @@ def get_baseline_driver_scores(
     round_number: int | None = Query(None, alias="round"),
     session: str | None = Query(None),
     limit: int = Query(20),
-    ) -> list[BaselineDriverScoreRow]:
+) -> list[BaselineDriverScoreRow]:
     try:
         return load_baseline_driver_scores(
             season=season, round_number=round_number, session=session, limit=limit

@@ -5,4 +5,3 @@ from .responses import (
     SessionTopDriverExplanationRow,
     TopDriverInsightRow,
 )
-

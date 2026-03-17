@@ -33,7 +33,9 @@ def build_top_driver_explanations(*, insights_path: Path, output_dir: Path) -> P
     if not rows:
         raise ValueError("No insight rows to explain")
 
-    explanation_generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    explanation_generated_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
 
     grouped: dict[tuple[int, int, str], list[dict[str, object]]] = {}
     for row in rows:

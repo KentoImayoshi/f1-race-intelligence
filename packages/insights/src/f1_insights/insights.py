@@ -32,7 +32,9 @@ def build_top_driver_insights(*, baseline_path: Path, output_dir: Path, top_n: i
         missing_list = ", ".join(sorted(missing))
         raise ValueError(f"Missing required baseline columns: {missing_list}")
 
-    insight_generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    insight_generated_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
 
     rows = table.to_pylist()
     grouped: dict[tuple[int, int, str], list[dict[str, object]]] = {}

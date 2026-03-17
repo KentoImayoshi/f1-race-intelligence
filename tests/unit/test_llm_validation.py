@@ -28,7 +28,10 @@ def test_explanations_require_insight_columns(tmp_path: Path) -> None:
     )
     pq.write_table(table, insights_path)
 
-    with pytest.raises(ValueError, match="Missing required insight columns: insight_generated_at, score"):
+    with pytest.raises(
+        ValueError,
+        match="Missing required insight columns: insight_generated_at, score",
+    ):
         build_top_driver_explanations(insights_path=insights_path, output_dir=tmp_path)
 
 

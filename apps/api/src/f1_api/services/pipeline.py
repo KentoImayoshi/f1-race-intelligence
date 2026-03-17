@@ -10,7 +10,6 @@ from f1_models.baseline import build_baseline_driver_scores
 from f1_processing.processing import process_session_results
 from f1_core.paths import raw_dir, processed_dir, features_dir, models_dir, insights_dir, llm_dir
 
-
 RAW_DIR = raw_dir()
 PROCESSED_DIR = processed_dir()
 FEATURES_DIR = features_dir()
@@ -20,7 +19,11 @@ LLM_DIR = llm_dir()
 
 
 def run_session_baseline_pipeline(
-    *, source: str = "seed", year: int | None = None, round_value: str | None = None, session: str | None = None
+    *,
+    source: str = "seed",
+    year: int | None = None,
+    round_value: str | None = None,
+    session: str | None = None,
 ) -> dict[str, object]:
     """The single allowed orchestrator that wires all downstream packages."""
     raw_path = ingest_raw_session_results(
@@ -35,7 +38,9 @@ def run_session_baseline_pipeline(
     features_path = build_session_features(processed_path=processed_path, output_dir=FEATURES_DIR)
     model_path = build_baseline_driver_scores(features_path=features_path, output_dir=MODELS_DIR)
     insights_path = build_top_driver_insights(baseline_path=model_path, output_dir=INSIGHTS_DIR)
-    explanations_path = build_top_driver_explanations(insights_path=insights_path, output_dir=LLM_DIR)
+    explanations_path = build_top_driver_explanations(
+        insights_path=insights_path, output_dir=LLM_DIR
+    )
 
     steps = [
         "ingested raw session results",

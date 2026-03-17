@@ -24,8 +24,16 @@ def _parse_args() -> argparse.Namespace:
         help="Ingestion source (seed or fastf1).",
     )
     parser.add_argument("--year", type=int, help="F1 season year (fastf1 only).")
-    parser.add_argument("--grand-prix", type=str, help="Grand Prix name or round number (fastf1 only).")
-    parser.add_argument("--session", type=str, help="Session code, e.g. R, Q, FP1 (fastf1 only).")
+    parser.add_argument(
+        "--grand-prix",
+        type=str,
+        help="Grand Prix name or round number (fastf1 only).",
+    )
+    parser.add_argument(
+        "--session",
+        type=str,
+        help="Session code, e.g. R, Q, FP1 (fastf1 only).",
+    )
     return parser.parse_args()
 
 

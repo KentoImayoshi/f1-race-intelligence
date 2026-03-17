@@ -28,8 +28,14 @@ def test_insights_require_baseline_columns(tmp_path: Path) -> None:
     )
     pq.write_table(table, baseline_path)
 
-    with pytest.raises(ValueError, match="Missing required baseline columns: model_generated_at, position_numeric"):
-        build_top_driver_insights(baseline_path=baseline_path, output_dir=tmp_path)
+    with pytest.raises(
+        ValueError,
+        match="Missing required baseline columns: model_generated_at, position_numeric",
+    ):
+        build_top_driver_insights(
+            baseline_path=baseline_path,
+            output_dir=tmp_path,
+        )
 
 
 @pytest.mark.unit
@@ -51,5 +57,12 @@ def test_insights_reject_top_n_leq_zero(tmp_path: Path) -> None:
     )
     pq.write_table(table, baseline_path)
 
-    with pytest.raises(ValueError, match="top_n must be greater than 0"):
-        build_top_driver_insights(baseline_path=baseline_path, output_dir=tmp_path, top_n=0)
+    with pytest.raises(
+        ValueError,
+        match="top_n must be greater than 0",
+    ):
+        build_top_driver_insights(
+            baseline_path=baseline_path,
+            output_dir=tmp_path,
+            top_n=0,
+        )

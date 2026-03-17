@@ -67,7 +67,11 @@ def test_build_top_driver_insights(tmp_path: Path) -> None:
     )
     pq.write_table(table, baseline_path)
 
-    output_path = build_top_driver_insights(baseline_path=baseline_path, output_dir=tmp_path, top_n=2)
+    output_path = build_top_driver_insights(
+        baseline_path=baseline_path,
+        output_dir=tmp_path,
+        top_n=2,
+    )
     out_table = pq.read_table(output_path)
 
     assert output_path.name == "insights_session_top_drivers.parquet"

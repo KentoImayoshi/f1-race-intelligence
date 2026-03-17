@@ -49,7 +49,10 @@ def test_build_top_driver_explanations(tmp_path: Path) -> None:
     )
     pq.write_table(table, insights_path)
 
-    output_path = build_top_driver_explanations(insights_path=insights_path, output_dir=tmp_path)
+    output_path = build_top_driver_explanations(
+        insights_path=insights_path,
+        output_dir=tmp_path,
+    )
     out_table = pq.read_table(output_path)
 
     assert output_path.name == "explanations_session_top_drivers.parquet"
@@ -60,7 +63,9 @@ def test_build_top_driver_explanations(tmp_path: Path) -> None:
 
     r_session = [row for row in out_rows if row["session"] == "R"][0]
     assert r_session["explanation_type"] == "top_drivers"
-    assert r_session["explanation_text"] == "Top drivers: VER (rank 1, score 1.0), LEC (rank 2, score 0.5)."
+    assert r_session["explanation_text"] == (
+        "Top drivers: VER (rank 1, score 1.0), LEC (rank 2, score 0.5)."
+    )
 
     q_session = [row for row in out_rows if row["session"] == "Q"][0]
-    assert q_session["explanation_text"] == "Top drivers: NOR (rank 1, score 1.0)."
+    assert q_session["explanation_text"] == ("Top drivers: NOR (rank 1, score 1.0).")

@@ -30,7 +30,9 @@ def process_session_results(*, raw_path: Path, output_dir: Path) -> Path:
         missing_list = ", ".join(sorted(missing))
         raise ValueError(f"Missing required raw columns: {missing_list}")
 
-    processed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    processed_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
 
     records = []
     for index, row in enumerate(table.to_pylist()):

@@ -16,7 +16,7 @@ def get_top_driver_insights(
     round_number: int | None = Query(None, alias="round"),
     session: str | None = Query(None),
     limit: int = Query(20),
-    ) -> list[TopDriverInsightRow]:
+) -> list[TopDriverInsightRow]:
     try:
         return load_top_driver_insights(
             season=season, round_number=round_number, session=session, limit=limit

@@ -1,6 +1,7 @@
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT / "apps/api/src"))
@@ -20,12 +21,36 @@ def test_run_session_baseline_pipeline(monkeypatch):
 
         return stub
 
-    monkeypatch.setattr(pipeline_module, "ingest_raw_session_results", make_stub("ingest", "raw.parquet"))
-    monkeypatch.setattr(pipeline_module, "process_session_results", make_stub("process", "processed.parquet"))
-    monkeypatch.setattr(pipeline_module, "build_session_features", make_stub("features", "features.parquet"))
-    monkeypatch.setattr(pipeline_module, "build_baseline_driver_scores", make_stub("models", "models.parquet"))
-    monkeypatch.setattr(pipeline_module, "build_top_driver_insights", make_stub("insights", "insights.parquet"))
-    monkeypatch.setattr(pipeline_module, "build_top_driver_explanations", make_stub("explanations", "explanations.parquet"))
+    monkeypatch.setattr(
+        pipeline_module,
+        "ingest_raw_session_results",
+        make_stub("ingest", "raw.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "process_session_results",
+        make_stub("process", "processed.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "build_session_features",
+        make_stub("features", "features.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "build_baseline_driver_scores",
+        make_stub("models", "models.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "build_top_driver_insights",
+        make_stub("insights", "insights.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "build_top_driver_explanations",
+        make_stub("explanations", "explanations.parquet"),
+    )
 
     result = run_session_baseline_pipeline(source="seed")
 

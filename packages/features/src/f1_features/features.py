@@ -29,7 +29,9 @@ def build_session_features(*, processed_path: Path, output_dir: Path) -> Path:
         missing_list = ", ".join(sorted(missing))
         raise ValueError(f"Missing required processed columns: {missing_list}")
 
-    feature_generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    feature_generated_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
 
     records = []
     for index, row in enumerate(table.to_pylist()):
