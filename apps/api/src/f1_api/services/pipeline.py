@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights

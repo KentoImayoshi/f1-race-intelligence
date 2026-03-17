@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-
-from f1_models.contracts import BASELINE_SESSION_DRIVER_SCORES_COLUMNS  # noqa: E402
+from f1_models.contracts import BASELINE_SESSION_DRIVER_SCORES_COLUMNS
 
 
 @pytest.mark.unit

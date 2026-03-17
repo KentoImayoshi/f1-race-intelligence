@@ -4,8 +4,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
-from f1_insights.insights import build_top_driver_insights  # noqa: E402
+from f1_insights.insights import build_top_driver_insights
 
 
 @pytest.mark.unit

@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-
 from f1_api.services import pipeline as pipeline_module
 from f1_api.services.pipeline import run_session_baseline_pipeline
 

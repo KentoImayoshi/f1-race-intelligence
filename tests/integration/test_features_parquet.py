@@ -4,9 +4,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
-from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS  # noqa: E402
-from f1_features.features import build_session_features  # noqa: E402
+from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS
+from f1_features.features import build_session_features
 
 
 @pytest.mark.integration

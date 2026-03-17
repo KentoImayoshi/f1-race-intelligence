@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-
-from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS  # noqa: E402
+from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS
 
 
 @pytest.mark.unit

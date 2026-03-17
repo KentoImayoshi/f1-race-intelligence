@@ -4,7 +4,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
 from f1_api.services.models import _filter_rows, load_baseline_driver_scores
 
 

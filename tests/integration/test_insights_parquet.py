@@ -4,9 +4,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
-from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS  # noqa: E402
-from f1_insights.insights import build_top_driver_insights  # noqa: E402
+from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS
+from f1_insights.insights import build_top_driver_insights
 
 
 @pytest.mark.integration

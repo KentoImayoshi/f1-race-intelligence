@@ -5,8 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
-from f1_features.features import build_session_features  # noqa: E402
+from f1_features.features import build_session_features
 
 
 @pytest.mark.unit

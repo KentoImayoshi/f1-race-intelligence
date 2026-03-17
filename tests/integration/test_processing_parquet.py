@@ -4,9 +4,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
-from f1_processing.contracts import PROCESSED_SESSION_RESULTS_COLUMNS  # noqa: E402
-from f1_processing.processing import process_session_results  # noqa: E402
+from f1_processing.contracts import PROCESSED_SESSION_RESULTS_COLUMNS
+from f1_processing.processing import process_session_results
 
 
 @pytest.mark.integration

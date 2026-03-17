@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 
 from f1_api.api.schemas import TopDriverInsightRow

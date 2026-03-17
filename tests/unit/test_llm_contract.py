@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-
-from f1_llm.contracts import EXPLANATION_SESSION_TOP_DRIVERS_COLUMNS  # noqa: E402
+from f1_llm.contracts import EXPLANATION_SESSION_TOP_DRIVERS_COLUMNS
 
 
 @pytest.mark.unit

@@ -4,7 +4,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-
 from f1_api.services.insights import _filter_rows, load_top_driver_insights
 
 
