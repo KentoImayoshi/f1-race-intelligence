@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from f1_core.paths import raw_dir, processed_dir, features_dir, models_dir, insights_dir, llm_dir
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights
 from f1_llm.explanations import build_top_driver_explanations
 from f1_models.baseline import build_baseline_driver_scores
 from f1_processing.processing import process_session_results
-from f1_core.paths import raw_dir, processed_dir, features_dir, models_dir, insights_dir, llm_dir
 
 RAW_DIR = raw_dir()
 PROCESSED_DIR = processed_dir()
