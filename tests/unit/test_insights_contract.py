@@ -1,10 +1,7 @@
 from pathlib import Path
-import sys
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/insights/src"))
 
 from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS  # noqa: E402
 

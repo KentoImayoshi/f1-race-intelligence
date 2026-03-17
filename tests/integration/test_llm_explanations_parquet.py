@@ -1,12 +1,9 @@
 from pathlib import Path
-import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/llm/src"))
 
 from f1_llm.contracts import EXPLANATION_SESSION_TOP_DRIVERS_COLUMNS  # noqa: E402
 from f1_llm.explanations import build_top_driver_explanations  # noqa: E402

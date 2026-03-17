@@ -1,12 +1,9 @@
 from pathlib import Path
-import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "apps/api/src"))
 
 from f1_api.services.explanations import _filter_rows, load_top_driver_explanations
 

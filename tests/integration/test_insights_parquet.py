@@ -1,12 +1,9 @@
 from pathlib import Path
-import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/insights/src"))
 
 from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS  # noqa: E402
 from f1_insights.insights import build_top_driver_insights  # noqa: E402

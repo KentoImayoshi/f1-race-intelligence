@@ -1,12 +1,9 @@
 from pathlib import Path
-import sys
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/features/src"))
 
 from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS  # noqa: E402
 from f1_features.features import build_session_features  # noqa: E402

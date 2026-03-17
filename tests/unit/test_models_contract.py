@@ -1,10 +1,7 @@
 from pathlib import Path
-import sys
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/models/src"))
 
 from f1_models.contracts import BASELINE_SESSION_DRIVER_SCORES_COLUMNS  # noqa: E402
 

@@ -1,10 +1,7 @@
 from pathlib import Path
-import sys
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "packages/features/src"))
 
 from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS  # noqa: E402
 

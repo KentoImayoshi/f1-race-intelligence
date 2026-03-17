@@ -1,10 +1,7 @@
 from pathlib import Path
-import sys
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.append(str(ROOT / "apps/api/src"))
 
 from f1_api.services import pipeline as pipeline_module
 from f1_api.services.pipeline import run_session_baseline_pipeline
