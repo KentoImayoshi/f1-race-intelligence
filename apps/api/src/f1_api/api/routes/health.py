@@ -1,5 +1,3 @@
-from fastapi import APIRouter, HTTPException
-
 from f1_core.paths import (
     data_dir,
     features_dir,
@@ -9,6 +7,7 @@ from f1_core.paths import (
     processed_dir,
     raw_dir,
 )
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
