@@ -22,8 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --no-cache-dir ruff black
-          pip install --no-cache-dir \
+          python -m pip install --no-cache-dir ruff black pytest
+          python -m pip install --no-cache-dir \
             -e packages/core \
             -e packages/ingestion \
             -e packages/processing \
@@ -39,7 +39,7 @@ jobs:
           black --check .
 
       - name: Run tests
-        run: pytest -q
+        run: python -m pytest -q
 
       - name: Build API container
         run: docker build --file infra/docker/api/Dockerfile --tag f1-api:ci .
