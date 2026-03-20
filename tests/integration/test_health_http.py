@@ -3,7 +3,6 @@ import os
 
 import httpx
 import pytest
-
 from f1_api.main import create_app
 
 

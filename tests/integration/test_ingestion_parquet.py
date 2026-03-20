@@ -1,6 +1,5 @@
 import pyarrow.parquet as pq
 import pytest
-
 from f1_ingestion.contracts import RAW_SESSION_RESULTS_COLUMNS
 from f1_ingestion.ingestion import ingest_raw_session_results
 

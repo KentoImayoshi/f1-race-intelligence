@@ -3,7 +3,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
 from f1_processing.contracts import PROCESSED_SESSION_RESULTS_COLUMNS
 from f1_processing.processing import process_session_results
 

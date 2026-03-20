@@ -3,7 +3,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
 from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS
 from f1_insights.insights import build_top_driver_insights
 

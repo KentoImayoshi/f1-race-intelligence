@@ -3,7 +3,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
 from f1_models.baseline import build_baseline_driver_scores
 from f1_models.contracts import BASELINE_SESSION_DRIVER_SCORES_COLUMNS
 
