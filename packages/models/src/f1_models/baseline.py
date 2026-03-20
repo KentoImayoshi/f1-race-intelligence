@@ -8,8 +8,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_models.contracts import BASELINE_SESSION_DRIVER_SCORES_COLUMNS
-
 REQUIRED_FEATURE_COLUMNS = {
     "season",
     "round",

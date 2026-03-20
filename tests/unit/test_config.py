@@ -1,5 +1,4 @@
 import pytest
-
 from f1_core.config import Settings
 
 

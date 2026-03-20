@@ -1,6 +1,5 @@
-import pytest
-
 import f1_ingestion.ingestion as ingestion
+import pytest
 
 
 class _FakeSession:

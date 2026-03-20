@@ -8,8 +8,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_insights.contracts import INSIGHT_SESSION_TOP_DRIVERS_COLUMNS
-
 REQUIRED_BASELINE_COLUMNS = {
     "season",
     "round",

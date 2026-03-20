@@ -8,8 +8,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS
-
 REQUIRED_PROCESSED_COLUMNS = {
     "season",
     "round",

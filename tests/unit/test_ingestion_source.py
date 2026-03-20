@@ -1,5 +1,4 @@
 import pytest
-
 from f1_ingestion.ingestion import ingest_raw_session_results
 
 

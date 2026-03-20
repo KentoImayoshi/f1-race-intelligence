@@ -10,7 +10,7 @@ from typing import Mapping, Sequence
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_ingestion.contracts import RAW_SESSION_RESULTS_COLUMNS, RawSessionResult
+from f1_ingestion.contracts import RawSessionResult
 
 logger = logging.getLogger("f1_ingestion")
 

@@ -1,5 +1,4 @@
 import pytest
-
 from f1_ingestion.ingestion import _records_from_results
 
 

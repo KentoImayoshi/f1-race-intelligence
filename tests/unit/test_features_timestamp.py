@@ -4,7 +4,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
 from f1_features.features import build_session_features
 
 

@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import pytest
-
 from f1_processing.contracts import PROCESSED_SESSION_RESULTS_COLUMNS
 
 

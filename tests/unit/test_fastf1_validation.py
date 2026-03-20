@@ -1,5 +1,4 @@
 import pytest
-
 from f1_ingestion.ingestion import map_fastf1_results
 
 
