@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from f1_core.config import settings
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from f1_api.api.schemas import PipelineRunResponse
 from f1_api.services.pipeline import run_session_baseline_pipeline
-from f1_core.config import settings
 
 router = APIRouter(prefix=f"{settings.api_v1_prefix}")
 

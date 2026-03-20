@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Iterable
 
 import pyarrow.parquet as pq
-
 from f1_core.paths import explanations_session_top_drivers_path
 
 EXPLANATIONS_PATH = explanations_session_top_drivers_path()

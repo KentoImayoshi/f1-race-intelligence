@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from f1_core.config import settings
 from fastapi import APIRouter, HTTPException, Query
 
 from f1_api.api.schemas import SessionTopDriverExplanationRow
 from f1_api.services.explanations import load_top_driver_explanations
-from f1_core.config import settings
 
 router = APIRouter(prefix=f"{settings.api_v1_prefix}")
 

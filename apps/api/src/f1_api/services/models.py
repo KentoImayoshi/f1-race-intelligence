@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Iterable
 
 import pyarrow.parquet as pq
-
 from f1_core.paths import baseline_driver_scores_path
 
 MODELS_PATH = baseline_driver_scores_path()
