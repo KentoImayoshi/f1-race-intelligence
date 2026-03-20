@@ -68,6 +68,13 @@ To run them explicitly:
 RUN_HTTP_INTEGRATION=1 .venv/bin/pytest -m integration
 ```
 
+### Health and readiness
+
+The API exposes two lightweight endpoints:
+
+- `GET /health`: reports whether the service is running (returns `{"status": "ok"}`).
+- `GET /ready`: ensures the expected `data/` subdirectories can be created and returns their paths so orchestrators can confirm storage readiness before routing traffic.
+
 ### FastF1 Integration Test (opt-in)
 
 The real FastF1 ingestion test is skipped by default. To run it explicitly:
