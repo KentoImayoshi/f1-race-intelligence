@@ -28,6 +28,8 @@ The minimal `docker compose up --build` workflow starts both the API (port 8000)
 docker compose up --build
 ```
 
+The API container exposes a `HEALTHCHECK` that polls `GET /ready` so orchestrators wait for storage readiness before traffic is routed, and Docker Compose reuses the same probe when bootstrapping the stack.
+
 ## Run Tests
 
 ```bash
