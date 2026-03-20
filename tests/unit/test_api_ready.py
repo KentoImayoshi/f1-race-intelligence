@@ -1,11 +1,9 @@
 from pathlib import Path
 
 import pytest
-
-from fastapi import HTTPException
-
 from f1_api.api.routes.health import ready
 from f1_core import paths
+from fastapi import HTTPException
 
 
 def test_ready_returns_directory_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
