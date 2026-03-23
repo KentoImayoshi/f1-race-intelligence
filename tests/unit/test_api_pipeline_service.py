@@ -47,9 +47,38 @@ def test_run_session_baseline_pipeline(monkeypatch):
         make_stub("explanations", "explanations.parquet"),
     )
 
+    manifest_object = object()
+    manifest_calls: list[dict[str, object]] = []
+
+    def stub_create_run_manifest(*, source, year, round_value, session, artifacts, status):
+        manifest_calls.append(
+            {
+                "source": source,
+                "year": year,
+                "round_value": round_value,
+                "session": session,
+                "artifacts": artifacts,
+                "status": status,
+            }
+        )
+        return manifest_object
+
+    saved_manifest: list[object] = []
+
+    def stub_save_run_manifest(manifest):
+        saved_manifest.append(manifest)
+
+    monkeypatch.setattr(pipeline_module, "create_run_manifest", stub_create_run_manifest)
+    monkeypatch.setattr(pipeline_module, "save_run_manifest", stub_save_run_manifest)
+
     result = run_session_baseline_pipeline(source="seed")
 
     assert result["success"] is True
     assert call_order == ["ingest", "process", "features", "models", "insights", "explanations"]
     assert result["artifacts"]["raw"] == "raw.parquet"
     assert "steps" in result
+
+    assert manifest_calls, "manifest should be created"
+    assert manifest_calls[0]["status"] == "success"
+    assert manifest_calls[0]["artifacts"]["insights"] == "insights.parquet"
+    assert saved_manifest == [manifest_object]

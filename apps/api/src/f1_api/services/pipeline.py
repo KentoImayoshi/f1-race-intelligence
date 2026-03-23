@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
+
 from f1_core.paths import features_dir, insights_dir, llm_dir, models_dir, processed_dir, raw_dir
+from f1_core.run_manifest import create_run_manifest, save_run_manifest
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights
@@ -14,6 +17,9 @@ FEATURES_DIR = features_dir()
 MODELS_DIR = models_dir()
 INSIGHTS_DIR = insights_dir()
 LLM_DIR = llm_dir()
+
+
+logger = logging.getLogger(__name__)
 
 
 def run_session_baseline_pipeline(
@@ -57,5 +63,18 @@ def run_session_baseline_pipeline(
         "insights": str(insights_path),
         "explanations": str(explanations_path),
     }
+
+    try:
+        manifest = create_run_manifest(
+            source=source,
+            year=year,
+            round_value=round_value,
+            session=session,
+            artifacts=artifacts,
+            status="success",
+        )
+        save_run_manifest(manifest)
+    except Exception:  # pragma: no cover - best effort logging
+        logger.exception("run manifest persistence failed")
 
     return {"success": True, "steps": steps, "artifacts": artifacts}

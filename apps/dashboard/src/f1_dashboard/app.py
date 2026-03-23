@@ -28,6 +28,7 @@ PIPELINE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/pipeline/run-session-baseline"
 BASELINE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/models/baseline-driver-scores"
 INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/insights/top-drivers"
 EXPLANATIONS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/explanations/session-top-drivers"
+LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
 
 
 def _format_request_error(exc: requests.RequestException) -> str:
@@ -53,6 +54,18 @@ def _fetch_json(
         return None, _format_request_error(exc)
 
 
+def _fetch_latest_run(timeout: int = 10) -> tuple[dict[str, object] | None, str | None]:
+    try:
+        response = requests.get(LATEST_RUN_ENDPOINT, timeout=timeout)
+        response.raise_for_status()
+        return response.json(), None
+    except requests.RequestException as exc:
+        response = getattr(exc, "response", None)
+        if response is not None and response.status_code == 404:
+            return None, None
+        return None, _format_request_error(exc)
+
+
 def _render_table_section(
     container: st.delta_generator.DeltaGenerator,
     title: str,
@@ -70,6 +83,19 @@ def _render_table_section(
             st.info(empty_message)
             return
         st.table(data)
+
+
+def _format_session_label(run: dict[str, object]) -> str:
+    parts: list[str] = []
+    round_value = run.get("round")
+    if round_value:
+        parts.append(f\"Round {round_value}\")
+    session_value = run.get("session")
+    if session_value:
+        parts.append(str(session_value))
+    if not parts:
+        return \"—\"
+    return \" \".join(parts)
 
 
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
@@ -121,6 +147,23 @@ elif pipeline_result:
     st.json(pipeline_result)
 else:
     st.info("Run the pipeline above to populate artifacts and dashboards.")
+
+latest_run_data, latest_run_error = _fetch_latest_run()
+
+st.divider()
+with st.container():
+    st.subheader("Latest successful run")
+    if latest_run_error:
+        st.warning(f"Unable to fetch latest run: {latest_run_error}")
+    elif not latest_run_data:
+        st.info("No successful pipeline runs recorded yet.")
+    else:
+        cols = st.columns(3)
+        status_display = str(latest_run_data.get("status", "unknown")).title()
+        cols[0].metric("Status", status_display)
+        cols[1].metric("Session", _format_session_label(latest_run_data))
+        cols[2].metric("Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
+        st.caption(f\"Source: {latest_run_data.get('source', 'unknown')}\")
 
 if pipeline_result:
     query_params: MutableMapping[str, str | int] = {}

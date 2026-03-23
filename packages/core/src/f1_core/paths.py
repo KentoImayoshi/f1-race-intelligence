@@ -38,6 +38,18 @@ def llm_dir() -> Path:
     return _ensure_dir(data_dir() / "llm")
 
 
+def artifacts_dir() -> Path:
+    return _ensure_dir(data_dir() / "artifacts")
+
+
+def run_manifests_dir() -> Path:
+    return _ensure_dir(artifacts_dir() / "run_manifests")
+
+
+def latest_run_manifest_path() -> Path:
+    return artifacts_dir() / "latest_run_manifest.json"
+
+
 def raw_session_results_path() -> Path:
     return raw_dir() / "raw_session_results.parquet"
 
