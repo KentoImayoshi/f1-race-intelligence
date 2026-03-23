@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from f1_api.api.routes.meta import last_run_metadata
 from f1_api.services import pipeline as pipeline_module
 from f1_core import paths
@@ -9,7 +8,9 @@ from f1_core.run_manifest import load_latest_run_manifest
 
 
 @pytest.mark.integration
-def test_pipeline_run_updates_last_run_manifest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pipeline_run_updates_last_run_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     data_root = tmp_path / "data"
     monkeypatch.setattr(paths, "DATA_DIR", data_root)
     pipeline_module.RAW_DIR = paths.raw_dir()
