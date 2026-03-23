@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
-
 from f1_core.config import settings
 from f1_core.run_manifest import RunManifest, load_latest_run_manifest
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix=settings.api_v1_prefix)
 

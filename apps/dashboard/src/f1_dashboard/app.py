@@ -89,13 +89,13 @@ def _format_session_label(run: dict[str, object]) -> str:
     parts: list[str] = []
     round_value = run.get("round")
     if round_value:
-        parts.append(f\"Round {round_value}\")
+        parts.append(f"Round {round_value}")
     session_value = run.get("session")
     if session_value:
         parts.append(str(session_value))
     if not parts:
-        return \"—\"
-    return \" \".join(parts)
+        return "—"
+    return " ".join(parts)
 
 
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
@@ -163,10 +163,10 @@ with st.container():
         cols[0].metric("Status", status_display)
         cols[1].metric("Session", _format_session_label(latest_run_data))
         cols[2].metric("Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
-        st.caption(f\"Source: {latest_run_data.get('source', 'unknown')}\")
+        st.caption(f"Source: {latest_run_data.get('source', 'unknown')}")
 
 if pipeline_result:
-    query_params: MutableMapping[str, str | int] = {}
+    query_params = {}
     for key, value in (("season", year), ("round", round_value), ("session", session_code)):
         if value:
             query_params[key] = value

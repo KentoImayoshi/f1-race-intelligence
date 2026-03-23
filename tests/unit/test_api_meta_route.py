@@ -1,8 +1,7 @@
 import pytest
-from fastapi import HTTPException
-
 from f1_api.api.routes.meta import last_run_metadata
 from f1_core.run_manifest import RunManifest
+from fastapi import HTTPException
 
 
 @pytest.mark.unit

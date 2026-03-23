@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from f1_api.api.routes import explanations, health, insights, models, meta, pipeline
+from f1_api.api.routes import explanations, health, insights, meta, models, pipeline
 
 router = APIRouter()
 router.include_router(health.router)

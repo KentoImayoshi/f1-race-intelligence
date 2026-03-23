@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+
 from pydantic import BaseModel
 
 from f1_core.paths import latest_run_manifest_path, run_manifests_dir
@@ -38,7 +39,8 @@ def create_run_manifest(
 
 
 def save_run_manifest(manifest: RunManifest) -> None:
-    per_run = run_manifests_dir() / f"run_manifest_{_sanitize_timestamp(manifest.run_timestamp)}.json"
+    per_run_name = f"run_manifest_{_sanitize_timestamp(manifest.run_timestamp)}.json"
+    per_run = run_manifests_dir() / per_run_name
     per_run.write_text(manifest.model_dump_json(indent=2))
     latest = latest_run_manifest_path()
     latest.write_text(manifest.model_dump_json(indent=2))

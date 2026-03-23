@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from f1_core import paths
 from f1_core.run_manifest import (
     create_run_manifest,
