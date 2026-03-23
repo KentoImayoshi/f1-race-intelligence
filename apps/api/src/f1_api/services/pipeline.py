@@ -7,7 +7,10 @@ from f1_core.run_manifest import create_run_manifest, save_run_manifest
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights
-from f1_llm.explanations import build_top_driver_explanations
+from f1_llm.explanations import (
+    build_fallback_explanations,
+    build_top_driver_explanations,
+)
 from f1_models.baseline import build_baseline_driver_scores
 from f1_processing.processing import process_session_results
 
@@ -42,9 +45,15 @@ def run_session_baseline_pipeline(
     features_path = build_session_features(processed_path=processed_path, output_dir=FEATURES_DIR)
     model_path = build_baseline_driver_scores(features_path=features_path, output_dir=MODELS_DIR)
     insights_path = build_top_driver_insights(baseline_path=model_path, output_dir=INSIGHTS_DIR)
-    explanations_path = build_top_driver_explanations(
-        insights_path=insights_path, output_dir=LLM_DIR
-    )
+    explanation_status = "ok"
+    try:
+        explanations_path = build_top_driver_explanations(
+            insights_path=insights_path, output_dir=LLM_DIR
+        )
+    except Exception as exc:  # pragma: no cover - fallback path logging
+        explanation_status = "fallback"
+        logger.exception("LLM explanation generation failed, writing fallback artifact")
+        explanations_path = build_fallback_explanations(output_dir=LLM_DIR, error=exc)
 
     steps = [
         "ingested raw session results",
@@ -72,6 +81,7 @@ def run_session_baseline_pipeline(
             session=session,
             artifacts=artifacts,
             status="success",
+            explanation_status=explanation_status,
         )
         save_run_manifest(manifest)
     except Exception:  # pragma: no cover - best effort logging

@@ -60,7 +60,41 @@ def build_top_driver_explanations(*, insights_path: Path, output_dir: Path) -> P
             }
         )
 
-    schema = pa.schema(
+    schema = _explanation_schema()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "explanations_session_top_drivers.parquet"
+    pq.write_table(pa.Table.from_pylist(records, schema=schema), output_path)
+
+    return output_path
+
+
+def build_fallback_explanations(*, output_dir: Path, error: Exception) -> Path:
+    """Write a placeholder explanation artifact when LLM generation fails."""
+    explanation_generated_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+    message = f"Explanations unavailable: {error}"
+    record = {
+        "season": 0,
+        "round": 0,
+        "session": "fallback",
+        "explanation_type": "fallback",
+        "explanation_text": message,
+        "explanation_generated_at": explanation_generated_at,
+    }
+
+    schema = _explanation_schema()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "explanations_session_top_drivers.parquet"
+    pq.write_table(pa.Table.from_pylist([record], schema=schema), output_path)
+
+    return output_path
+
+
+def _explanation_schema() -> pa.Schema:
+    return pa.schema(
         [
             ("season", pa.int64()),
             ("round", pa.int64()),
@@ -70,9 +104,3 @@ def build_top_driver_explanations(*, insights_path: Path, output_dir: Path) -> P
             ("explanation_generated_at", pa.string()),
         ]
     )
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "explanations_session_top_drivers.parquet"
-    pq.write_table(pa.Table.from_pylist(records, schema=schema), output_path)
-
-    return output_path

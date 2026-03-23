@@ -15,6 +15,7 @@ class RunManifest(BaseModel):
     round: str | None
     session: str | None
     artifacts: dict[str, str]
+    explanation_status: str = "ok"
 
 
 def create_run_manifest(
@@ -25,6 +26,7 @@ def create_run_manifest(
     session: str | None,
     artifacts: dict[str, str],
     status: str = "success",
+    explanation_status: str = "ok",
 ) -> RunManifest:
     now = datetime.now(timezone.utc).replace(microsecond=0)
     return RunManifest(
@@ -35,6 +37,7 @@ def create_run_manifest(
         round=_stringify(round_value),
         session=session,
         artifacts=artifacts,
+        explanation_status=explanation_status,
     )
 
 
