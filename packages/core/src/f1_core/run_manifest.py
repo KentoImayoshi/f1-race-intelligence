@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -20,6 +21,14 @@ class RunProvenance(BaseModel):
     explainer_name: str
     model_version: str | None = None
     explainer_version: str | None = None
+
+
+class RunFreshness(BaseModel):
+    status: Literal["recent", "stale", "unknown"]
+    age_seconds: int
+
+
+FRESHNESS_THRESHOLD_SECONDS = 86_400
 
 
 class RunManifest(BaseModel):
@@ -99,3 +108,24 @@ def _stringify(value: str | int | None) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def compute_run_freshness(
+    run_timestamp: str,
+    *,
+    now: datetime | None = None,
+    threshold_seconds: int = FRESHNESS_THRESHOLD_SECONDS,
+) -> RunFreshness:
+    if now is None:
+        now = datetime.now(timezone.utc)
+    try:
+        timestamp = datetime.fromisoformat(run_timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return RunFreshness(status="unknown", age_seconds=0)
+    age_seconds = max(int((now - timestamp).total_seconds()), 0)
+    status = "recent" if age_seconds < threshold_seconds else "stale"
+    return RunFreshness(status=status, age_seconds=age_seconds)
+
+
+def describe_run_freshness(manifest: RunManifest) -> RunFreshness:
+    return compute_run_freshness(manifest.run_timestamp)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from f1_core.run_manifest import ArtifactAvailability, RunManifest
+from f1_core.run_manifest import ArtifactAvailability, RunFreshness, RunManifest
 from pydantic import BaseModel, Field
 
 
@@ -50,3 +50,4 @@ class PipelineRunResponse(BaseModel):
 
 class LastRunMetadataResponse(RunManifest):
     artifact_availability: list[ArtifactAvailability]
+    freshness: RunFreshness

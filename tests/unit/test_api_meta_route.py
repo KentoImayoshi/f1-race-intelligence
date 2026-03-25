@@ -1,6 +1,11 @@
 import pytest
 from f1_api.api.routes.meta import last_run_metadata
-from f1_core.run_manifest import ArtifactAvailability, RunManifest, RunProvenance
+from f1_core.run_manifest import (
+    ArtifactAvailability,
+    RunFreshness,
+    RunManifest,
+    RunProvenance,
+)
 from fastapi import HTTPException
 
 
@@ -36,12 +41,18 @@ def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
         lambda artifacts: availability,
     )
 
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.describe_run_freshness",
+        lambda manifest: RunFreshness(status="recent", age_seconds=5),
+    )
+
     response = last_run_metadata()
 
     assert response.artifact_availability == availability
     assert response.run_timestamp == sample_manifest.run_timestamp
     assert response.artifacts == sample_manifest.artifacts
     assert response.provenance == sample_manifest.provenance
+    assert response.freshness.status == "recent"
 
 
 @pytest.mark.unit
@@ -90,6 +101,10 @@ def test_last_run_metadata_contract(monkeypatch) -> None:
         "f1_api.api.routes.meta.describe_artifact_availability",
         lambda artifacts: availability,
     )
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.describe_run_freshness",
+        lambda manifest: RunFreshness(status="recent", age_seconds=10),
+    )
 
     response = last_run_metadata()
     payload = response.model_dump()
@@ -105,3 +120,5 @@ def test_last_run_metadata_contract(monkeypatch) -> None:
     assert payload["provenance"]["model_version"] == "v1"
     assert payload["provenance"]["explainer_name"] == "top_driver_explanations"
     assert payload["provenance"]["explainer_version"] == "v1"
+    assert payload["freshness"]["status"] == "recent"
+    assert payload["freshness"]["age_seconds"] == 10

@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 from f1_core import paths
 from f1_core.run_manifest import (
     RunProvenance,
+    compute_run_freshness,
     create_run_manifest,
     describe_artifact_availability,
     load_latest_run_manifest,
@@ -61,3 +63,21 @@ def test_describe_artifact_availability_detects_missing_files(tmp_path: Path) ->
     assert present_entry.status == "available"
     assert missing_entry.exists is False
     assert missing_entry.status == "missing"
+
+
+@pytest.mark.unit
+def test_compute_run_freshness_recent() -> None:
+    now = datetime.now(timezone.utc)
+    timestamp = (now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+    freshness = compute_run_freshness(timestamp, now=now, threshold_seconds=3600)
+    assert freshness.status == "recent"
+    assert freshness.age_seconds == 300
+
+
+@pytest.mark.unit
+def test_compute_run_freshness_stale() -> None:
+    now = datetime.now(timezone.utc)
+    timestamp = (now - timedelta(days=2)).isoformat().replace("+00:00", "Z")
+    freshness = compute_run_freshness(timestamp, now=now, threshold_seconds=86_400)
+    assert freshness.status == "stale"
+    assert freshness.age_seconds >= 86_400

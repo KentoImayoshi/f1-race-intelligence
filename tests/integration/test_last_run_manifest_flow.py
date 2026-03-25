@@ -43,3 +43,4 @@ def test_pipeline_run_updates_last_run_manifest(
     )
     assert response.provenance.model_name == pipeline_module.BASELINE_MODEL_NAME
     assert response.provenance.explainer_name == pipeline_module.EXPLAINER_NAME
+    assert response.freshness.status in {"recent", "stale", "unknown"}

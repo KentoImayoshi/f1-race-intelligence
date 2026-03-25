@@ -183,6 +183,14 @@ with st.container():
             prov_cols = st.columns(2)
             prov_cols[0].caption(f"Model: {model_label}")
             prov_cols[1].caption(f"Explainer: {explainer_label}")
+        freshness = latest_run_data.get("freshness")
+        if freshness:
+            freshness_status = str(freshness.get("status", "unknown")).title()
+            freshness_age = freshness.get("age_seconds")
+            freshness_text = freshness_status
+            if freshness_age is not None:
+                freshness_text = f"{freshness_text} ({freshness_age}s)"
+            st.caption(f"Freshness: {freshness_text}")
         artifact_availability = latest_run_data.get("artifact_availability")
         if artifact_availability:
             availability_rows = []
