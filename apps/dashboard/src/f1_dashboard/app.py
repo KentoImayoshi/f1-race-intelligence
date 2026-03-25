@@ -5,6 +5,7 @@ from typing import MutableMapping
 import requests
 import streamlit as st
 from streamlit import session_state as state
+from streamlit import st_autorefresh
 
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
@@ -30,6 +31,7 @@ BASELINE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/models/baseline-driver-scores"
 INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/insights/top-drivers"
 EXPLANATIONS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/explanations/session-top-drivers"
 LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
+AUTO_REFRESH_INTERVAL_SECONDS = 60
 
 
 def _format_request_error(exc: requests.RequestException) -> str:
@@ -220,6 +222,27 @@ latest_run_error = state.get("latest_run_error")
 st.divider()
 with st.container():
     st.subheader("Latest successful run")
+    auto_refresh_default = state.get("latest_run_auto_refresh_enabled", False)
+    auto_refresh = st.checkbox(
+        f"Enable auto-refresh (every {AUTO_REFRESH_INTERVAL_SECONDS}s)",
+        value=auto_refresh_default,
+        key="latest_run_auto_refresh_enabled",
+    )
+    auto_refresh_caption = "Auto-refresh off"
+    if auto_refresh:
+        tick = st_autorefresh(
+            interval=AUTO_REFRESH_INTERVAL_SECONDS * 1000,
+            key="latest_run_auto_refresh_timer",
+        )
+        previous_tick = state.get("latest_run_auto_refresh_tick")
+        if previous_tick != tick:
+            state.latest_run_auto_refresh_tick = tick
+            _refresh_latest_run()
+            latest_run_data = state.get("latest_run_data")
+            latest_run_error = state.get("latest_run_error")
+        auto_refresh_caption = f"Auto-refresh on (every {AUTO_REFRESH_INTERVAL_SECONDS}s)"
+    else:
+        state.latest_run_auto_refresh_tick = None
     if latest_run_error:
         st.warning(f"Unable to fetch latest run: {latest_run_error}")
     elif not latest_run_data:
@@ -230,7 +253,11 @@ with st.container():
             _refresh_latest_run()
             latest_run_data = state.get("latest_run_data")
             latest_run_error = state.get("latest_run_error")
-        st.caption(f"Last refreshed: {_timestamp_label(state.get('latest_run_updated'))}")
+
+        st.caption(
+            "Last refreshed: "
+            f"{_timestamp_label(state.get('latest_run_updated'))} · {auto_refresh_caption}"
+        )
         cols = st.columns(3)
         status_display = str(latest_run_data.get("status", "unknown")).title()
         cols[0].metric("Status", status_display)
