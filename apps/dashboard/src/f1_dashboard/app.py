@@ -164,6 +164,20 @@ with st.container():
         cols[1].metric("Session", _format_session_label(latest_run_data))
         cols[2].metric("Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
         st.caption(f"Source: {latest_run_data.get('source', 'unknown')}")
+        artifact_availability = latest_run_data.get("artifact_availability")
+        if artifact_availability:
+            availability_rows = []
+            for entry in artifact_availability:
+                exists = entry.get("exists")
+                availability_rows.append(
+                    {
+                        "Artifact": entry.get("artifact_name", "unknown"),
+                        "Exists": "✅" if exists else "❌",
+                        "Status": entry.get("status") or ("present" if exists else "missing"),
+                    }
+                )
+            with st.expander("Artifact availability", expanded=False):
+                st.table(availability_rows)
 
 if pipeline_result:
     query_params = {}
