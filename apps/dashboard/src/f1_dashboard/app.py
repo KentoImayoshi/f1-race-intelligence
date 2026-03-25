@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from typing import MutableMapping
 
 import requests
@@ -148,6 +149,19 @@ def _build_operational_summary(run: dict[str, object]) -> tuple[str, str, str] |
     )
 
 
+def _timestamp_label(ts: datetime | None) -> str:
+    if ts is None:
+        return "Never"
+    return ts.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+
+
+def _refresh_latest_run() -> None:
+    data, error = _fetch_latest_run()
+    state.latest_run_data = data
+    state.latest_run_error = error
+    state.latest_run_updated = datetime.now(timezone.utc)
+
+
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
 st.title("F1 Race Intelligence Dashboard")
 
@@ -198,7 +212,10 @@ elif pipeline_result:
 else:
     st.info("Run the pipeline above to populate artifacts and dashboards.")
 
-latest_run_data, latest_run_error = _fetch_latest_run()
+if "latest_run_data" not in state:
+    _refresh_latest_run()
+latest_run_data = state.get("latest_run_data")
+latest_run_error = state.get("latest_run_error")
 
 st.divider()
 with st.container():
@@ -208,6 +225,12 @@ with st.container():
     elif not latest_run_data:
         st.info("No successful pipeline runs recorded yet.")
     else:
+        refresh = st.button("Refresh latest run", key="refresh_latest_run")
+        if refresh:
+            _refresh_latest_run()
+            latest_run_data = state.get("latest_run_data")
+            latest_run_error = state.get("latest_run_error")
+        st.caption(f"Last refreshed: {_timestamp_label(state.get('latest_run_updated'))}")
         cols = st.columns(3)
         status_display = str(latest_run_data.get("status", "unknown")).title()
         cols[0].metric("Status", status_display)
