@@ -137,3 +137,10 @@ Example response fragment:
   "execution_status": "success"
 }
 ```
+
+### Operational guidance
+
+- **When to check**: call `/api/v1/meta/last-run` after running the pipeline (via dashboard or POST endpoint) or when you need a quick sanity check that artifacts are landing as expected.
+- **Interpret execution_status**: `success` means the full pipeline completed, `degraded` indicates the explanation step used the fallback artifact, and `failed` would only trigger if an error prevented manifest persistence (currently logged and reflected here if surfaced).
+- **Use freshness + artifact_availability together**: a stale freshness status plus missing artifacts usually means the run should be re-triggered before downstream analysis; recent freshness with `exists: true` is what operators should aim for.
+- **Artifact troubleshooting**: each entry in `artifact_availability` lists the expected path and existence flag—use it to confirm that storage paths match the pipeline outputs before digging deeper into the pipeline logs.
