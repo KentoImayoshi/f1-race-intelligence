@@ -220,10 +220,16 @@ with st.container():
             message = f"{title}: {detail}"
             if kind == "success":
                 st.success(message)
-            elif kind == "warning":
-                st.warning(message)
             else:
-                st.error(message)
+                background = "#fff1f0" if kind == "error" else "#fffbe6"
+                border = "#ffccc7" if kind == "error" else "#ffe58f"
+                emoji = "🛑" if kind == "error" else "⚠️"
+                html = (
+                    f"<div style='border:1px solid {border}; "
+                    f"background:{background}; padding:0.5rem; border-radius:6px;'>"
+                    f"<strong>{emoji} {title}</strong><br>{detail}</div>"
+                )
+                st.markdown(html, unsafe_allow_html=True)
         provenance = latest_run_data.get("provenance")
         if provenance:
             model_label = _format_provenance_label(
