@@ -38,4 +38,6 @@ def test_pipeline_run_updates_last_run_manifest(
     assert response.run_timestamp == manifest.run_timestamp
     assert response.artifacts == manifest.artifacts
     assert response.artifact_availability
-    assert any(entry.artifact_name == "raw" and entry.exists for entry in response.artifact_availability)
+    assert any(
+        entry.artifact_name == "raw" and entry.exists for entry in response.artifact_availability
+    )
