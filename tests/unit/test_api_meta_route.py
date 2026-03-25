@@ -1,11 +1,12 @@
 import pytest
 from f1_api.api.routes.meta import last_run_metadata
-from f1_core.run_manifest import ArtifactAvailability, RunManifest
+from f1_core.run_manifest import ArtifactAvailability, RunManifest, RunProvenance
 from fastapi import HTTPException
 
 
 @pytest.mark.unit
 def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
+    provenance = RunProvenance(model_name="baseline", explainer_name="explain")
     sample_manifest = RunManifest(
         run_timestamp="2024-01-01T00:00:00Z",
         status="success",
@@ -14,6 +15,7 @@ def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
         round="1",
         session="R",
         artifacts={},
+        provenance=provenance,
     )
 
     availability = [
@@ -39,6 +41,7 @@ def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
     assert response.artifact_availability == availability
     assert response.run_timestamp == sample_manifest.run_timestamp
     assert response.artifacts == sample_manifest.artifacts
+    assert response.provenance == sample_manifest.provenance
 
 
 @pytest.mark.unit

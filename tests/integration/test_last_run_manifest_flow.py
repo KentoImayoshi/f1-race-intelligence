@@ -41,3 +41,5 @@ def test_pipeline_run_updates_last_run_manifest(
     assert any(
         entry.artifact_name == "raw" and entry.exists for entry in response.artifact_availability
     )
+    assert response.provenance.model_name == pipeline_module.BASELINE_MODEL_NAME
+    assert response.provenance.explainer_name == pipeline_module.EXPLAINER_NAME

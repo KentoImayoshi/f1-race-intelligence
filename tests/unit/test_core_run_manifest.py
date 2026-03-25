@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from f1_core import paths
 from f1_core.run_manifest import (
+    RunProvenance,
     create_run_manifest,
     describe_artifact_availability,
     load_latest_run_manifest,
@@ -16,12 +17,14 @@ def test_run_manifest_persists_and_loads(tmp_path: Path, monkeypatch: pytest.Mon
     artifact_dir = tmp_path / "data"
     monkeypatch.setattr(paths, "DATA_DIR", artifact_dir)
 
+    provenance = RunProvenance(model_name="baseline", explainer_name="explain")
     manifest = create_run_manifest(
         source="seed",
         year=2025,
         round_value="3",
         session="R",
         artifacts={"raw": "raw.parquet"},
+        provenance=provenance,
     )
 
     save_run_manifest(manifest)

@@ -15,6 +15,13 @@ class ArtifactAvailability(BaseModel):
     status: str | None = None
 
 
+class RunProvenance(BaseModel):
+    model_name: str
+    explainer_name: str
+    model_version: str | None = None
+    explainer_version: str | None = None
+
+
 class RunManifest(BaseModel):
     run_timestamp: str
     status: str
@@ -24,6 +31,7 @@ class RunManifest(BaseModel):
     session: str | None
     artifacts: dict[str, str]
     explanation_status: str = "ok"
+    provenance: RunProvenance
 
 
 def create_run_manifest(
@@ -35,6 +43,7 @@ def create_run_manifest(
     artifacts: dict[str, str],
     status: str = "success",
     explanation_status: str = "ok",
+    provenance: RunProvenance,
 ) -> RunManifest:
     now = datetime.now(timezone.utc).replace(microsecond=0)
     return RunManifest(
@@ -46,6 +55,7 @@ def create_run_manifest(
         session=session,
         artifacts=artifacts,
         explanation_status=explanation_status,
+        provenance=provenance,
     )
 
 

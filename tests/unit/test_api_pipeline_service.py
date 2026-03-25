@@ -59,6 +59,7 @@ def test_run_session_baseline_pipeline(monkeypatch):
         artifacts,
         status,
         explanation_status="ok",
+        provenance=None,
     ):
         manifest_calls.append(
             {
@@ -69,6 +70,7 @@ def test_run_session_baseline_pipeline(monkeypatch):
                 "artifacts": artifacts,
                 "status": status,
                 "explanation_status": explanation_status,
+                "provenance": provenance,
             }
         )
         return manifest_object
@@ -93,6 +95,9 @@ def test_run_session_baseline_pipeline(monkeypatch):
     assert manifest_calls[0]["artifacts"]["insights"] == "insights.parquet"
     assert manifest_calls[0]["explanation_status"] == "ok"
     assert saved_manifest == [manifest_object]
+    assert manifest_calls[0]["provenance"] is not None
+    assert manifest_calls[0]["provenance"].model_name == pipeline_module.BASELINE_MODEL_NAME
+    assert manifest_calls[0]["provenance"].explainer_name == pipeline_module.EXPLAINER_NAME
 
 
 @pytest.mark.unit
@@ -166,6 +171,7 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
         artifacts,
         status,
         explanation_status="ok",
+        provenance=None,
     ):
         manifest_calls.append(
             {
@@ -176,6 +182,7 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
                 "artifacts": artifacts,
                 "status": status,
                 "explanation_status": explanation_status,
+                "provenance": provenance,
             }
         )
         return manifest_object
@@ -194,3 +201,4 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
     assert result["artifacts"]["explanations"] == str(fallback_path)
     assert fallback_errors, "fallback should be invoked"
     assert manifest_calls[0]["explanation_status"] == "fallback"
+    assert manifest_calls[0]["provenance"] is not None

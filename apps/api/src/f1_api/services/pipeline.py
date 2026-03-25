@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from f1_core.paths import features_dir, insights_dir, llm_dir, models_dir, processed_dir, raw_dir
-from f1_core.run_manifest import create_run_manifest, save_run_manifest
+from f1_core.run_manifest import RunProvenance, create_run_manifest, save_run_manifest
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights
@@ -21,6 +21,11 @@ MODELS_DIR = models_dir()
 INSIGHTS_DIR = insights_dir()
 LLM_DIR = llm_dir()
 
+
+BASELINE_MODEL_NAME = "baseline_driver_scores"
+BASELINE_MODEL_VERSION = "v1"
+EXPLAINER_NAME = "top_driver_explanations"
+EXPLAINER_VERSION = "v1"
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +78,13 @@ def run_session_baseline_pipeline(
         "explanations": str(explanations_path),
     }
 
+    provenance = RunProvenance(
+        model_name=BASELINE_MODEL_NAME,
+        explainer_name=EXPLAINER_NAME,
+        model_version=BASELINE_MODEL_VERSION,
+        explainer_version=EXPLAINER_VERSION,
+    )
+
     try:
         manifest = create_run_manifest(
             source=source,
@@ -82,6 +94,7 @@ def run_session_baseline_pipeline(
             artifacts=artifacts,
             status="success",
             explanation_status=explanation_status,
+            provenance=provenance,
         )
         save_run_manifest(manifest)
     except Exception:  # pragma: no cover - best effort logging
