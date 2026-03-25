@@ -53,6 +53,7 @@ def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
     assert response.artifacts == sample_manifest.artifacts
     assert response.provenance == sample_manifest.provenance
     assert response.freshness.status == "recent"
+    assert response.execution_status == "success"
 
 
 @pytest.mark.unit
@@ -122,3 +123,4 @@ def test_last_run_metadata_contract(monkeypatch) -> None:
     assert payload["provenance"]["explainer_version"] == "v1"
     assert payload["freshness"]["status"] == "recent"
     assert payload["freshness"]["age_seconds"] == 10
+    assert payload["execution_status"] == "success"

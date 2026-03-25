@@ -3,7 +3,12 @@ from __future__ import annotations
 import logging
 
 from f1_core.paths import features_dir, insights_dir, llm_dir, models_dir, processed_dir, raw_dir
-from f1_core.run_manifest import RunProvenance, create_run_manifest, save_run_manifest
+from f1_core.run_manifest import (
+    RunProvenance,
+    create_run_manifest,
+    infer_execution_status,
+    save_run_manifest,
+)
 from f1_features.features import build_session_features
 from f1_ingestion.ingestion import ingest_raw_session_results
 from f1_insights.insights import build_top_driver_insights
@@ -78,6 +83,8 @@ def run_session_baseline_pipeline(
         "explanations": str(explanations_path),
     }
 
+    execution_status = infer_execution_status(explanation_status)
+
     provenance = RunProvenance(
         model_name=BASELINE_MODEL_NAME,
         explainer_name=EXPLAINER_NAME,
@@ -94,6 +101,7 @@ def run_session_baseline_pipeline(
             artifacts=artifacts,
             status="success",
             explanation_status=explanation_status,
+            execution_status=execution_status,
             provenance=provenance,
         )
         save_run_manifest(manifest)

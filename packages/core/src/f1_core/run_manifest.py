@@ -28,6 +28,9 @@ class RunFreshness(BaseModel):
     age_seconds: int
 
 
+ExecutionStatus = Literal["success", "degraded", "failed"]
+
+
 FRESHNESS_THRESHOLD_SECONDS = 86_400
 
 
@@ -41,6 +44,7 @@ class RunManifest(BaseModel):
     artifacts: dict[str, str]
     explanation_status: str = "ok"
     provenance: RunProvenance
+    execution_status: ExecutionStatus = "success"
 
 
 def create_run_manifest(
@@ -53,6 +57,7 @@ def create_run_manifest(
     status: str = "success",
     explanation_status: str = "ok",
     provenance: RunProvenance,
+    execution_status: ExecutionStatus = "success",
 ) -> RunManifest:
     now = datetime.now(timezone.utc).replace(microsecond=0)
     return RunManifest(
@@ -65,6 +70,7 @@ def create_run_manifest(
         artifacts=artifacts,
         explanation_status=explanation_status,
         provenance=provenance,
+        execution_status=execution_status,
     )
 
 
@@ -129,3 +135,9 @@ def compute_run_freshness(
 
 def describe_run_freshness(manifest: RunManifest) -> RunFreshness:
     return compute_run_freshness(manifest.run_timestamp)
+
+
+def infer_execution_status(explanation_status: str) -> ExecutionStatus:
+    if explanation_status != "ok":
+        return "degraded"
+    return "success"

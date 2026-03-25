@@ -191,6 +191,9 @@ with st.container():
             if freshness_age is not None:
                 freshness_text = f"{freshness_text} ({freshness_age}s)"
             st.caption(f"Freshness: {freshness_text}")
+        execution_status = latest_run_data.get("execution_status")
+        if execution_status:
+            st.caption(f"Execution: {execution_status.title()}")
         artifact_availability = latest_run_data.get("artifact_availability")
         if artifact_availability:
             availability_rows = []

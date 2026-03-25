@@ -59,6 +59,7 @@ def test_run_session_baseline_pipeline(monkeypatch):
         artifacts,
         status,
         explanation_status="ok",
+        execution_status="success",
         provenance=None,
     ):
         manifest_calls.append(
@@ -70,6 +71,7 @@ def test_run_session_baseline_pipeline(monkeypatch):
                 "artifacts": artifacts,
                 "status": status,
                 "explanation_status": explanation_status,
+                "execution_status": execution_status,
                 "provenance": provenance,
             }
         )
@@ -98,6 +100,7 @@ def test_run_session_baseline_pipeline(monkeypatch):
     assert manifest_calls[0]["provenance"] is not None
     assert manifest_calls[0]["provenance"].model_name == pipeline_module.BASELINE_MODEL_NAME
     assert manifest_calls[0]["provenance"].explainer_name == pipeline_module.EXPLAINER_NAME
+    assert manifest_calls[0]["execution_status"] == "success"
 
 
 @pytest.mark.unit
@@ -171,6 +174,7 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
         artifacts,
         status,
         explanation_status="ok",
+        execution_status="success",
         provenance=None,
     ):
         manifest_calls.append(
@@ -182,6 +186,7 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
                 "artifacts": artifacts,
                 "status": status,
                 "explanation_status": explanation_status,
+                "execution_status": execution_status,
                 "provenance": provenance,
             }
         )
@@ -202,3 +207,4 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
     assert fallback_errors, "fallback should be invoked"
     assert manifest_calls[0]["explanation_status"] == "fallback"
     assert manifest_calls[0]["provenance"] is not None
+    assert manifest_calls[0]["execution_status"] == "degraded"
