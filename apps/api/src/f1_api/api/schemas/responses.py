@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from f1_core.run_manifest import ArtifactAvailability, RunManifest
+
 
 class BaselineDriverScoreRow(BaseModel):
     season: int
@@ -45,3 +47,7 @@ class PipelineRunResponse(BaseModel):
     success: bool = Field(..., description="Indicates whether the pipeline run succeeded")
     steps: list[str] = Field(..., description="Human-readable description of each completed step")
     artifacts: PipelineRunArtifacts
+
+
+class LastRunMetadataResponse(RunManifest):
+    artifact_availability: list[ArtifactAvailability]

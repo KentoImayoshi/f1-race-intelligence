@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pydantic import BaseModel
 
 from f1_core.paths import latest_run_manifest_path, run_manifests_dir
+
+
+class ArtifactAvailability(BaseModel):
+    artifact_name: str
+    expected_path: str
+    exists: bool
+    status: str | None = None
 
 
 class RunManifest(BaseModel):
@@ -58,6 +66,23 @@ def load_latest_run_manifest() -> RunManifest | None:
 
 def _sanitize_timestamp(timestamp: str) -> str:
     return "".join(ch for ch in timestamp if ch.isalnum())
+
+
+def describe_artifact_availability(artifacts: dict[str, str]) -> list[ArtifactAvailability]:
+    availability: list[ArtifactAvailability] = []
+    for name, artifact_path in artifacts.items():
+        path = Path(artifact_path)
+        exists = path.exists()
+        status = "available" if exists else "missing"
+        availability.append(
+            ArtifactAvailability(
+                artifact_name=name,
+                expected_path=str(path),
+                exists=exists,
+                status=status,
+            )
+        )
+    return availability
 
 
 def _stringify(value: str | int | None) -> str | None:

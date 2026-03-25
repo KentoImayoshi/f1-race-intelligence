@@ -1,6 +1,6 @@
 import pytest
 from f1_api.api.routes.meta import last_run_metadata
-from f1_core.run_manifest import RunManifest
+from f1_core.run_manifest import ArtifactAvailability, RunManifest
 from fastapi import HTTPException
 
 
@@ -16,9 +16,29 @@ def test_last_run_metadata_returns_manifest(monkeypatch) -> None:
         artifacts={},
     )
 
-    monkeypatch.setattr("f1_api.api.routes.meta.load_latest_run_manifest", lambda: sample_manifest)
+    availability = [
+        ArtifactAvailability(
+            artifact_name="raw",
+            expected_path="raw.parquet",
+            exists=True,
+            status="available",
+        )
+    ]
 
-    assert last_run_metadata() == sample_manifest
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.load_latest_run_manifest",
+        lambda: sample_manifest,
+    )
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.describe_artifact_availability",
+        lambda artifacts: availability,
+    )
+
+    response = last_run_metadata()
+
+    assert response.artifact_availability == availability
+    assert response.run_timestamp == sample_manifest.run_timestamp
+    assert response.artifacts == sample_manifest.artifacts
 
 
 @pytest.mark.unit
