@@ -98,6 +98,14 @@ def _format_session_label(run: dict[str, object]) -> str:
     return " ".join(parts)
 
 
+def _format_provenance_label(name: str | None, version: str | None) -> str:
+    if not name:
+        return "unknown"
+    if version:
+        return f"{name} · {version}"
+    return name
+
+
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
 st.title("F1 Race Intelligence Dashboard")
 
@@ -164,6 +172,17 @@ with st.container():
         cols[1].metric("Session", _format_session_label(latest_run_data))
         cols[2].metric("Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
         st.caption(f"Source: {latest_run_data.get('source', 'unknown')}")
+        provenance = latest_run_data.get("provenance")
+        if provenance:
+            model_label = _format_provenance_label(
+                provenance.get("model_name"), provenance.get("model_version")
+            )
+            explainer_label = _format_provenance_label(
+                provenance.get("explainer_name"), provenance.get("explainer_version")
+            )
+            prov_cols = st.columns(2)
+            prov_cols[0].caption(f"Model: {model_label}")
+            prov_cols[1].caption(f"Explainer: {explainer_label}")
         artifact_availability = latest_run_data.get("artifact_availability")
         if artifact_availability:
             availability_rows = []
