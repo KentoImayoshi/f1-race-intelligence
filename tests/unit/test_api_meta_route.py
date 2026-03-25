@@ -52,3 +52,56 @@ def test_last_run_metadata_missing(monkeypatch) -> None:
         last_run_metadata()
 
     assert excinfo.value.status_code == 404
+
+
+@pytest.mark.contract
+def test_last_run_metadata_contract(monkeypatch) -> None:
+    provenance = RunProvenance(
+        model_name="baseline_driver_scores",
+        explainer_name="top_driver_explanations",
+        model_version="v1",
+        explainer_version="v1",
+    )
+    manifest = RunManifest(
+        run_timestamp="2024-02-01T00:00:00Z",
+        status="success",
+        source="seed",
+        year=2024,
+        round="2",
+        session="Q",
+        artifacts={"raw": "data/raw.parquet"},
+        provenance=provenance,
+    )
+
+    availability = [
+        ArtifactAvailability(
+            artifact_name="raw",
+            expected_path="data/raw.parquet",
+            exists=True,
+            status="available",
+        )
+    ]
+
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.load_latest_run_manifest",
+        lambda: manifest,
+    )
+    monkeypatch.setattr(
+        "f1_api.api.routes.meta.describe_artifact_availability",
+        lambda artifacts: availability,
+    )
+
+    response = last_run_metadata()
+    payload = response.model_dump()
+
+    assert payload["status"] == "success"
+    assert payload["year"] == 2024
+    assert payload["round"] == "2"
+    assert payload["artifacts"]["raw"] == "data/raw.parquet"
+    assert isinstance(payload["artifact_availability"], list)
+    assert payload["artifact_availability"][0]["artifact_name"] == "raw"
+    assert payload["artifact_availability"][0]["status"] == "available"
+    assert payload["provenance"]["model_name"] == "baseline_driver_scores"
+    assert payload["provenance"]["model_version"] == "v1"
+    assert payload["provenance"]["explainer_name"] == "top_driver_explanations"
+    assert payload["provenance"]["explainer_version"] == "v1"

@@ -5,6 +5,7 @@ addopts = "-q"
 markers = [
     "unit: fast, isolated tests",
     "integration: app-level or HTTP-style tests",
+    "contract: contract-style tests",
 ]
 
 [tool.ruff]
