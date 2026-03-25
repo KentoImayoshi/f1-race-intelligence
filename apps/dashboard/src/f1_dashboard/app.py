@@ -106,6 +106,48 @@ def _format_provenance_label(name: str | None, version: str | None) -> str:
     return name
 
 
+def _build_operational_summary(run: dict[str, object]) -> tuple[str, str, str] | None:
+    artifacts = run.get("artifact_availability") or []
+    missing_artifacts = any(not entry.get("exists") for entry in artifacts)
+    execution_status = run.get("execution_status")
+    freshness = run.get("freshness", {})
+    freshness_status = freshness.get("status")
+
+    if missing_artifacts:
+        return (
+            "error",
+            "Missing artifacts",
+            "One or more artifacts were reported missing. Re-run the pipeline to regenerate them.",
+        )
+
+    if execution_status == "failed":
+        return (
+            "error",
+            "Run failed",
+            "The latest run did not complete successfully; check logs for details.",
+        )
+
+    if execution_status == "degraded":
+        return (
+            "warning",
+            "Degraded run",
+            "Explanation fallback was triggered; results may be partial.",
+        )
+
+    if freshness_status == "stale":
+        return (
+            "warning",
+            "Stale metadata",
+            "Latest run exceeds the freshness threshold; consider rerunning.",
+        )
+
+    return (
+        "success",
+        "Healthy run",
+        "Artifacts, explainers, and freshness signals look good.",
+    )
+
+
 st.set_page_config(page_title="F1 Race Intelligence", layout="wide")
 st.title("F1 Race Intelligence Dashboard")
 
@@ -172,6 +214,16 @@ with st.container():
         cols[1].metric("Session", _format_session_label(latest_run_data))
         cols[2].metric("Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
         st.caption(f"Source: {latest_run_data.get('source', 'unknown')}")
+        summary = _build_operational_summary(latest_run_data)
+        if summary:
+            kind, title, detail = summary
+            message = f"{title}: {detail}"
+            if kind == "success":
+                st.success(message)
+            elif kind == "warning":
+                st.warning(message)
+            else:
+                st.error(message)
         provenance = latest_run_data.get("provenance")
         if provenance:
             model_label = _format_provenance_label(
