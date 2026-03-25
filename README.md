@@ -103,3 +103,37 @@ Recommended real-data parameters for manual runs:
 - `packages/llm` placeholder
 - `data/` raw, processed, features
 - `infra/` docker and ci scaffolding (empty)
+
+## Latest run metadata
+
+The API exposes `GET /api/v1/meta/last-run`, which returns the most recent run manifest enriched with operational signals:
+
+- `artifact_availability`: a list of artifacts with their expected paths and whether the file exists (`exists`, plus a short `status` string like `available` or `missing`).
+- `provenance`: the model and explainer names (and optional versions) that produced the intelligence.
+- `freshness`: derived from the run timestamp (`status` is `recent`, `stale`, or `unknown`, and `age_seconds` reports how long ago the run finished).
+- `execution_status`: high-level outcome of the run (`success`, `degraded`, or `failed`), which tracks whether the explanation generation hit a fallback path.
+
+Example response fragment:
+
+```json
+{
+  "status": "success",
+  "artifacts": {
+    "raw": "data/raw/raw_session_results.parquet"
+  },
+  "artifact_availability": [
+    { "artifact_name": "raw", "expected_path": "data/raw/raw_session_results.parquet", "exists": true, "status": "available" }
+  ],
+  "provenance": {
+    "model_name": "baseline_driver_scores",
+    "explainer_name": "top_driver_explanations",
+    "model_version": "v1",
+    "explainer_version": "v1"
+  },
+  "freshness": {
+    "status": "recent",
+    "age_seconds": 120
+  },
+  "execution_status": "success"
+}
+```
