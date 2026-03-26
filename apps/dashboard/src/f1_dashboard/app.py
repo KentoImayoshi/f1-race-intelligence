@@ -5,7 +5,7 @@ from typing import MutableMapping
 import requests
 import streamlit as st
 from streamlit import session_state as state
-from streamlit import st_autorefresh
+from streamlit_autorefresh import st_autorefresh
 
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
