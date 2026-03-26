@@ -219,20 +219,18 @@ pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
 
-if "latest_run_data" not in state:
-    _refresh_latest_run()
-latest_run_data = state.get("latest_run_data")
-latest_run_error = state.get("latest_run_error")
-
 if pipeline_status == "running":
     st.info("Pipeline run in progress…")
 elif pipeline_error:
     st.error(pipeline_error)
 elif pipeline_result:
-    _render_pipeline_completion_feedback(latest_run_data)
+    _render_pipeline_completion_feedback(state.get("latest_run_data"))
     st.json(pipeline_result)
 else:
     st.info("Run the pipeline above to populate artifacts and dashboards.")
+
+latest_run_data = state.get("latest_run_data")
+latest_run_error = state.get("latest_run_error")
 
 
 st.divider()
