@@ -53,3 +53,19 @@ def test_fastf1_invalid_session_error(monkeypatch, tmp_path) -> None:
             grand_prix=1,
             session="INVALID",
         )
+
+
+@pytest.mark.unit
+def test_fastf1_missing_laps_raises_actionable_error(monkeypatch, tmp_path) -> None:
+    fake = _FakeFastF1(_FakeSession(results=[]))
+    fake._session.laps = None
+    monkeypatch.setitem(ingestion.__dict__, "fastf1", fake)
+
+    with pytest.raises(RuntimeError, match="FastF1 session laps are unavailable"):
+        ingestion.ingest_raw_session_laps(
+            output_dir=tmp_path,
+            source="fastf1",
+            year=2024,
+            grand_prix=1,
+            session="R",
+        )

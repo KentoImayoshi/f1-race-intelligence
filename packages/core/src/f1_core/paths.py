@@ -54,6 +54,10 @@ def raw_session_results_path() -> Path:
     return raw_dir() / "raw_session_results.parquet"
 
 
+def raw_session_laps_path() -> Path:
+    return raw_dir() / "raw_session_laps.parquet"
+
+
 def processed_session_results_path() -> Path:
     return processed_dir() / "processed_session_results.parquet"
 

@@ -1,4 +1,4 @@
-"""Minimal ingestion slice for raw Formula 1 session results."""
+"""Minimal ingestion slices for raw Formula 1 session data."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Mapping, Sequence
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_ingestion.contracts import RawSessionResult
+from f1_ingestion.contracts import RawSessionLap, RawSessionResult
 
 logger = logging.getLogger("f1_ingestion")
 
@@ -54,6 +54,65 @@ def ingest_raw_session_results(
 
     logger.info(
         "writing raw session results",
+        extra={"rows": table.num_rows, "path": str(output_path), "source": source},
+    )
+    pq.write_table(table, output_path)
+
+    return output_path
+
+
+def ingest_raw_session_laps(
+    output_dir: Path,
+    source: str = "fastf1",
+    *,
+    year: int | None = None,
+    grand_prix: str | int | None = None,
+    session: str | None = None,
+) -> Path:
+    """Write a raw session laps parquet file to the output directory."""
+    if source != "fastf1":
+        raise ValueError("Lap-level raw ingestion currently supports only the fastf1 source")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    ingested_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+    records = [
+        record.to_record()
+        for record in _fastf1_session_laps(
+            ingested_at=ingested_at,
+            year=year,
+            grand_prix=grand_prix,
+            session=session,
+        )
+    ]
+
+    schema = pa.schema(
+        [
+            ("season", pa.int64()),
+            ("round", pa.int64()),
+            ("grand_prix", pa.string()),
+            ("session", pa.string()),
+            ("driver_code", pa.string()),
+            ("lap_number", pa.int64()),
+            ("lap_time_ms", pa.int64()),
+            ("sector_1_ms", pa.int64()),
+            ("sector_2_ms", pa.int64()),
+            ("sector_3_ms", pa.int64()),
+            ("compound", pa.string()),
+            ("stint", pa.int64()),
+            ("is_personal_best", pa.bool_()),
+            ("source", pa.string()),
+            ("ingested_at", pa.string()),
+        ]
+    )
+
+    table = pa.Table.from_pylist(records, schema=schema)
+    output_path = output_dir / "raw_session_laps.parquet"
+
+    logger.info(
+        "writing raw session laps",
         extra={"rows": table.num_rows, "path": str(output_path), "source": source},
     )
     pq.write_table(table, output_path)
@@ -151,6 +210,46 @@ def _fastf1_session_results(
     )
 
 
+def _fastf1_session_laps(
+    *, ingested_at: str, year: int | None, grand_prix: str | int | None, session: str | None
+) -> list[RawSessionLap]:
+    if year is None or grand_prix is None or session is None:
+        raise ValueError("year, grand_prix, and session are required for fastf1 ingestion")
+
+    fastf1_module = globals().get("fastf1")
+    if fastf1_module is None:
+        try:
+            import fastf1 as fastf1_module
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "FastF1 is not installed. Install it with `pip install fastf1` "
+                "and re-run with --source fastf1."
+            ) from exc
+
+    try:
+        session_obj = fastf1_module.get_session(year, grand_prix, session)
+        session_obj.load()
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            "FastF1 session load failed. Check year, grand_prix, and session inputs."
+        ) from exc
+
+    laps = getattr(session_obj, "laps", None)
+    if laps is None:
+        raise RuntimeError("FastF1 session laps are unavailable for this session.")
+
+    event_name = _resolve_event_name(getattr(session_obj, "event", None), grand_prix)
+
+    return map_fastf1_laps(
+        season=year,
+        round_number=int(session_obj.event["RoundNumber"]),
+        grand_prix=event_name,
+        session=session,
+        laps=_records_from_results(laps),
+        ingested_at=ingested_at,
+    )
+
+
 def map_fastf1_results(
     *,
     season: int,
@@ -174,6 +273,47 @@ def map_fastf1_results(
                 driver_code=driver_code,
                 position=position,
                 lap_time_ms=lap_time_ms,
+                source="fastf1",
+                ingested_at=ingested_at,
+            )
+        )
+
+    return mapped
+
+
+def map_fastf1_laps(
+    *,
+    season: int,
+    round_number: int,
+    grand_prix: str,
+    session: str,
+    laps: Sequence[Mapping[str, object]],
+    ingested_at: str,
+) -> list[RawSessionLap]:
+    mapped: list[RawSessionLap] = []
+
+    for index, row in enumerate(laps):
+        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        lap_number = _require_int(row.get("LapNumber"), "LapNumber", index=index)
+        compound = _optional_string(row.get("Compound"))
+        stint = _optional_int(row.get("Stint"))
+        is_personal_best = _optional_bool(row.get("IsPersonalBest"))
+
+        mapped.append(
+            RawSessionLap(
+                season=season,
+                round=round_number,
+                grand_prix=grand_prix,
+                session=session,
+                driver_code=driver_code,
+                lap_number=lap_number,
+                lap_time_ms=_parse_optional_time_to_ms(row.get("LapTime")),
+                sector_1_ms=_parse_optional_time_to_ms(row.get("Sector1Time")),
+                sector_2_ms=_parse_optional_time_to_ms(row.get("Sector2Time")),
+                sector_3_ms=_parse_optional_time_to_ms(row.get("Sector3Time")),
+                compound=compound,
+                stint=stint,
+                is_personal_best=is_personal_best,
                 source="fastf1",
                 ingested_at=ingested_at,
             )
@@ -209,14 +349,26 @@ def _require_int(value: object, label: str, *, index: int) -> int:
 
 
 def _parse_time_to_ms(value: object) -> int:
+    parsed = _parse_optional_time_to_ms(value)
+    return parsed or 0
+
+
+def _parse_optional_time_to_ms(value: object) -> int | None:
     if value is None:
-        return 0
+        return None
+
+    total_seconds = getattr(value, "total_seconds", None)
+    if callable(total_seconds):
+        return int(round(float(total_seconds()) * 1000))
+
     if isinstance(value, (int, float)):
         return int(float(value) * 1000)
 
     text = str(value).strip()
     if not text:
-        return 0
+        return None
+    if text.lower() == "nat":
+        return None
 
     parts = text.split(":")
     if len(parts) == 1:
@@ -227,3 +379,31 @@ def _parse_time_to_ms(value: object) -> int:
         seconds = minutes * 60 + seconds
 
     return int(round(seconds * 1000))
+
+
+def _optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _optional_bool(value: object) -> bool | None:
+    if value is None:
+        return None
+    return bool(value)
+
+
+def _resolve_event_name(event: object, fallback: str | int) -> str:
+    if isinstance(event, Mapping):
+        for key in ("EventName", "OfficialEventName", "Event"):
+            value = event.get(key)
+            if value:
+                return str(value)
+    return str(fallback)
