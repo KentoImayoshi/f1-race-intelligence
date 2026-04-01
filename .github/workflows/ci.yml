@@ -31,7 +31,8 @@ jobs:
             -e packages/models \
             -e packages/insights \
             -e packages/llm \
-            -e apps/api
+            -e apps/api \
+            -e apps/dashboard
 
       - name: Lint and format check
         run: |
