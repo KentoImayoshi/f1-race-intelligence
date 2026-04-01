@@ -165,6 +165,34 @@ def _render_pipeline_completion_feedback(run: dict[str, object] | None) -> None:
         st.success("Pipeline completed; metadata refreshed after execution.")
 
 
+def _render_operator_feedback(
+    request_status: str | None,
+    request_error: str | None,
+    run: dict[str, object] | None,
+) -> None:
+    if request_status == "running":
+        st.info("Pipeline run in progress…")
+        return
+
+    if request_error:
+        if run:
+            execution_status = run.get("execution_status", "unknown")
+            st.error(
+                "Pipeline request failed; latest run metadata refreshed "
+                f"(latest execution: {str(execution_status).title()})."
+            )
+            st.caption(request_error)
+        else:
+            st.error(request_error)
+        return
+
+    if request_status == "success":
+        _render_pipeline_completion_feedback(run)
+        return
+
+    st.info("Run the pipeline above to populate artifacts and dashboards.")
+
+
 def _timestamp_label(ts: datetime | None) -> str:
     if ts is None:
         return "Never"
@@ -209,28 +237,22 @@ if run_button:
                 response.raise_for_status()
                 state.pipeline_result = response.json()
                 state.pipeline_status = "success"
-                _refresh_latest_run()
             except requests.RequestException as exc:
                 state.pipeline_error = f"Pipeline request failed: {_format_request_error(exc)}"
                 state.pipeline_result = None
                 state.pipeline_status = "error"
+            finally:
+                _refresh_latest_run()
 
 pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
-
-if pipeline_status == "running":
-    st.info("Pipeline run in progress…")
-elif pipeline_error:
-    st.error(pipeline_error)
-elif pipeline_result:
-    _render_pipeline_completion_feedback(state.get("latest_run_data"))
-    st.json(pipeline_result)
-else:
-    st.info("Run the pipeline above to populate artifacts and dashboards.")
-
 latest_run_data = state.get("latest_run_data")
 latest_run_error = state.get("latest_run_error")
+
+_render_operator_feedback(pipeline_status, pipeline_error, latest_run_data)
+if pipeline_result:
+    st.json(pipeline_result)
 
 
 st.divider()
