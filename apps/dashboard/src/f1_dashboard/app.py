@@ -7,6 +7,8 @@ import streamlit as st
 from streamlit import session_state as state
 from streamlit_autorefresh import st_autorefresh
 
+from f1_dashboard.operator_loop import build_operator_feedback, execute_pipeline_run
+
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
     try:
@@ -151,46 +153,22 @@ def _build_operational_summary(run: dict[str, object]) -> tuple[str, str, str] |
     )
 
 
-def _render_pipeline_completion_feedback(run: dict[str, object] | None) -> None:
-    execution_status = run.get("execution_status") if run else None
-    if execution_status == "failed":
-        st.error("Pipeline completed but execution status is Failed; investigate the logs.")
-    elif execution_status == "degraded":
-        st.warning(
-            "Pipeline completed with a degraded execution status; explanation fallback took over."
-        )
-    elif execution_status == "success":
-        st.success("Pipeline completed successfully and latest metadata refreshed.")
-    else:
-        st.success("Pipeline completed; metadata refreshed after execution.")
-
-
 def _render_operator_feedback(
     request_status: str | None,
     request_error: str | None,
     run: dict[str, object] | None,
 ) -> None:
-    if request_status == "running":
-        st.info("Pipeline run in progress…")
-        return
-
-    if request_error:
-        if run:
-            execution_status = run.get("execution_status", "unknown")
-            st.error(
-                "Pipeline request failed; latest run metadata refreshed "
-                f"(latest execution: {str(execution_status).title()})."
-            )
-            st.caption(request_error)
-        else:
-            st.error(request_error)
-        return
-
-    if request_status == "success":
-        _render_pipeline_completion_feedback(run)
-        return
-
-    st.info("Run the pipeline above to populate artifacts and dashboards.")
+    level, message, detail = build_operator_feedback(request_status, request_error, run)
+    if level == "error":
+        st.error(message)
+    elif level == "warning":
+        st.warning(message)
+    elif level == "success":
+        st.success(message)
+    else:
+        st.info(message)
+    if detail:
+        st.caption(detail)
 
 
 def _timestamp_label(ts: datetime | None) -> str:
@@ -232,17 +210,24 @@ if run_button:
             "session": session_code,
         }
         with st.spinner("Running pipeline baseline…"):
-            try:
-                response = requests.post(PIPELINE_ENDPOINT, json=payload, timeout=20)
+
+            def _run_pipeline(run_payload: dict[str, object]) -> dict[str, object]:
+                response = requests.post(PIPELINE_ENDPOINT, json=run_payload, timeout=20)
                 response.raise_for_status()
-                state.pipeline_result = response.json()
-                state.pipeline_status = "success"
-            except requests.RequestException as exc:
-                state.pipeline_error = f"Pipeline request failed: {_format_request_error(exc)}"
-                state.pipeline_result = None
-                state.pipeline_status = "error"
-            finally:
-                _refresh_latest_run()
+                return response.json()
+
+            pipeline_status, pipeline_result, pipeline_error = execute_pipeline_run(
+                payload,
+                run_pipeline=_run_pipeline,
+                refresh_latest_run=_refresh_latest_run,
+            )
+            state.pipeline_result = pipeline_result
+            state.pipeline_status = pipeline_status
+            state.pipeline_error = (
+                f"Pipeline request failed: {_format_request_error(pipeline_error)}"
+                if pipeline_error
+                else None
+            )
 
 pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
