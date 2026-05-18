@@ -45,6 +45,36 @@ The API container exposes a `HEALTHCHECK` that polls `GET /ready` so orchestrato
 Expected artifact:
 
 - `data/raw/raw_session_results.parquet`
+- `data/raw/raw_session_results.parquet.metadata.json`
+
+### Run Real-Data Ingestion
+
+Preferred real-data source order is now available through `--source auto`, which tries `fastf1`, then `openf1`, then `jolpica` while preserving the existing raw parquet contract.
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --source auto --year 2024 --grand-prix 1 --session R
+```
+
+To target a specific provider directly:
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --source openf1 --year 2024 --grand-prix 1 --session R
+```
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --source jolpica --year 2024 --grand-prix Bahrain --session R
+```
+
+To also persist lap-level raw data when the provider supports it:
+
+```bash
+.venv/bin/python -m f1_ingestion.cli --source auto --year 2024 --grand-prix 1 --session R --include-laps
+```
+
+Companion artifacts:
+
+- `data/raw/raw_session_laps.parquet`
+- `data/raw/raw_session_laps.parquet.metadata.json`
 
 ### Test Conventions
 
@@ -96,13 +126,20 @@ Recommended real-data parameters for manual runs:
 - `apps/api` FastAPI app
 - `apps/dashboard` Streamlit app
 - `packages/core` shared config/logging
-- `packages/ingestion` placeholder
+- `packages/ingestion` real-data ingestion adapters and CLI
 - `packages/features` placeholder
 - `packages/models` placeholder
 - `packages/insights` placeholder
 - `packages/llm` placeholder
 - `data/` raw, processed, features
 - `infra/` docker and ci scaffolding (empty)
+
+## Real-data ingestion notes
+
+- `fastf1` is the preferred rich source for session-native results and laps.
+- `openf1` provides HTTP-native session, driver, and lap data and is the best fallback for production ingestion when `fastf1` is unavailable.
+- `jolpica` provides season/round result data and race metadata, used as a conservative fallback while preserving the same raw parquet schema.
+- Each raw parquet now has a sidecar metadata JSON file with resolved source, round/session context, upstream endpoints, row counts, and warnings.
 
 ## Latest run metadata
 

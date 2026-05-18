@@ -6,7 +6,14 @@ import argparse
 import logging
 from pathlib import Path
 
-from f1_ingestion.ingestion import ingest_raw_session_results
+from f1_ingestion.ingestion import (
+    FASTF1_SOURCE,
+    JOLPICA_SOURCE,
+    OPENF1_SOURCE,
+    SEED_SOURCE,
+    ingest_raw_session_laps,
+    ingest_raw_session_results,
+)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -21,7 +28,8 @@ def _parse_args() -> argparse.Namespace:
         "--source",
         type=str,
         default="seed",
-        help="Ingestion source (seed or fastf1).",
+        choices=[SEED_SOURCE, FASTF1_SOURCE, OPENF1_SOURCE, JOLPICA_SOURCE, "auto"],
+        help="Ingestion source.",
     )
     parser.add_argument("--year", type=int, help="F1 season year (fastf1 only).")
     parser.add_argument(
@@ -33,6 +41,11 @@ def _parse_args() -> argparse.Namespace:
         "--session",
         type=str,
         help="Session code, e.g. R, Q, FP1 (fastf1 only).",
+    )
+    parser.add_argument(
+        "--include-laps",
+        action="store_true",
+        help="Also fetch raw lap-level parquet when supported by the selected source.",
     )
     return parser.parse_args()
 
@@ -49,6 +62,15 @@ def main() -> int:
         session=args.session,
     )
     print(f"Wrote {output_path}")
+    if args.include_laps:
+        laps_path = ingest_raw_session_laps(
+            output_dir=args.output_dir,
+            source=args.source,
+            year=args.year,
+            grand_prix=args.grand_prix,
+            session=args.session,
+        )
+        print(f"Wrote {laps_path}")
     return 0
 
 

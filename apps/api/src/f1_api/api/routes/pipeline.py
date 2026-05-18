@@ -11,7 +11,10 @@ router = APIRouter(prefix=f"{settings.api_v1_prefix}")
 
 
 class PipelineRequest(BaseModel):
-    source: str = Field("seed", description="Data source, e.g. seed or fastf1")
+    source: str = Field(
+        "seed",
+        description="Data source: seed, fastf1, openf1, jolpica, or auto",
+    )
     year: int | None = Field(None, description="Season year (required for fastf1)")
     round_value: str | None = Field(None, alias="round", description="Grand prix name or round")
     session: str | None = Field(None, description="Session code, e.g. R, Q, FP1")

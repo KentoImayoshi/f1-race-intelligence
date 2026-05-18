@@ -1,4 +1,4 @@
-import f1_ingestion.ingestion as ingestion
+import f1_ingestion.sources as sources
 import pytest
 
 
@@ -22,10 +22,12 @@ class _FakeFastF1:
 @pytest.mark.unit
 def test_fastf1_missing_results_raises_actionable_error(monkeypatch, tmp_path) -> None:
     fake = _FakeFastF1(_FakeSession(results=None))
-    monkeypatch.setitem(ingestion.__dict__, "fastf1", fake)
+    monkeypatch.setitem(sources.__dict__, "fastf1", fake)
 
     with pytest.raises(RuntimeError, match="FastF1 session results are unavailable"):
-        ingestion.ingest_raw_session_results(
+        from f1_ingestion.ingestion import ingest_raw_session_results
+
+        ingest_raw_session_results(
             output_dir=tmp_path,
             source="fastf1",
             year=2024,
@@ -43,10 +45,12 @@ def test_fastf1_invalid_session_error(monkeypatch, tmp_path) -> None:
         def get_session(self, year, grand_prix, session):
             raise FakeInvalidSession("bad session")
 
-    monkeypatch.setitem(ingestion.__dict__, "fastf1", FakeFastF1Invalid())
+    monkeypatch.setitem(sources.__dict__, "fastf1", FakeFastF1Invalid())
 
     with pytest.raises(RuntimeError, match="FastF1 session load failed"):
-        ingestion.ingest_raw_session_results(
+        from f1_ingestion.ingestion import ingest_raw_session_results
+
+        ingest_raw_session_results(
             output_dir=tmp_path,
             source="fastf1",
             year=2024,
@@ -59,10 +63,12 @@ def test_fastf1_invalid_session_error(monkeypatch, tmp_path) -> None:
 def test_fastf1_missing_laps_raises_actionable_error(monkeypatch, tmp_path) -> None:
     fake = _FakeFastF1(_FakeSession(results=[]))
     fake._session.laps = None
-    monkeypatch.setitem(ingestion.__dict__, "fastf1", fake)
+    monkeypatch.setitem(sources.__dict__, "fastf1", fake)
 
     with pytest.raises(RuntimeError, match="FastF1 session laps are unavailable"):
-        ingestion.ingest_raw_session_laps(
+        from f1_ingestion.ingestion import ingest_raw_session_laps
+
+        ingest_raw_session_laps(
             output_dir=tmp_path,
             source="fastf1",
             year=2024,

@@ -28,5 +28,5 @@ def test_fastf1_laps_require_parameters(tmp_path) -> None:
 
 @pytest.mark.unit
 def test_lap_ingestion_rejects_non_fastf1_source(tmp_path) -> None:
-    with pytest.raises(ValueError, match="supports only the fastf1 source"):
+    with pytest.raises(ValueError, match="supports only the fastf1, openf1, and jolpica sources"):
         ingest_raw_session_laps(output_dir=tmp_path, source="seed")
