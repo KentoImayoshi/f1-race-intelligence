@@ -13,6 +13,7 @@ from f1_ingestion.ingestion import (
     SEED_SOURCE,
     ingest_raw_session_laps,
     ingest_raw_session_results,
+    ingest_raw_session_telemetry,
 )
 
 
@@ -47,6 +48,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Also fetch raw lap-level parquet when supported by the selected source.",
     )
+    parser.add_argument(
+        "--include-telemetry",
+        action="store_true",
+        help="Also fetch raw telemetry/detail parquet when supported by the selected source.",
+    )
     return parser.parse_args()
 
 
@@ -71,6 +77,15 @@ def main() -> int:
             session=args.session,
         )
         print(f"Wrote {laps_path}")
+    if args.include_telemetry:
+        telemetry_path = ingest_raw_session_telemetry(
+            output_dir=args.output_dir,
+            source=args.source,
+            year=args.year,
+            grand_prix=args.grand_prix,
+            session=args.session,
+        )
+        print(f"Wrote {telemetry_path}")
     return 0
 
 

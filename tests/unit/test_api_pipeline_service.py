@@ -23,6 +23,16 @@ def test_run_session_baseline_pipeline(monkeypatch):
     )
     monkeypatch.setattr(
         pipeline_module,
+        "ingest_raw_session_laps",
+        make_stub("ingest_laps", "raw_laps.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "ingest_raw_session_telemetry",
+        make_stub("ingest_telemetry", "raw_telemetry.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
         "process_session_results",
         make_stub("process", "processed.parquet"),
     )
@@ -31,6 +41,18 @@ def test_run_session_baseline_pipeline(monkeypatch):
         "build_session_features",
         make_stub("features", "features.parquet"),
     )
+
+    def analytics_stub(*args, **kwargs):
+        call_order.append("analytics")
+        return {
+            "lap_analysis": Path("lap_analysis.parquet"),
+            "sector_performance": Path("sector.parquet"),
+            "tire_stints": Path("stints.parquet"),
+            "driver_consistency": Path("consistency.parquet"),
+            "pace_evolution": Path("pace.parquet"),
+        }
+
+    monkeypatch.setattr(pipeline_module, "build_session_analytics", analytics_stub)
     monkeypatch.setattr(
         pipeline_module,
         "build_baseline_driver_scores",
@@ -88,8 +110,19 @@ def test_run_session_baseline_pipeline(monkeypatch):
     result = run_session_baseline_pipeline(source="seed")
 
     assert result["success"] is True
-    assert call_order == ["ingest", "process", "features", "models", "insights", "explanations"]
+    assert call_order == [
+        "ingest",
+        "ingest_laps",
+        "ingest_telemetry",
+        "process",
+        "features",
+        "analytics",
+        "models",
+        "insights",
+        "explanations",
+    ]
     assert result["artifacts"]["raw"] == "raw.parquet"
+    assert result["artifacts"]["raw_telemetry"] == "raw_telemetry.parquet"
     assert "steps" in result
 
     assert manifest_calls, "manifest should be created"
@@ -121,6 +154,16 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
     )
     monkeypatch.setattr(
         pipeline_module,
+        "ingest_raw_session_laps",
+        make_stub("ingest_laps", "raw_laps.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "ingest_raw_session_telemetry",
+        make_stub("ingest_telemetry", "raw_telemetry.parquet"),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
         "process_session_results",
         make_stub("process", "processed.parquet"),
     )
@@ -129,6 +172,18 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
         "build_session_features",
         make_stub("features", "features.parquet"),
     )
+
+    def analytics_stub(*args, **kwargs):
+        call_order.append("analytics")
+        return {
+            "lap_analysis": Path("lap_analysis.parquet"),
+            "sector_performance": Path("sector.parquet"),
+            "tire_stints": Path("stints.parquet"),
+            "driver_consistency": Path("consistency.parquet"),
+            "pace_evolution": Path("pace.parquet"),
+        }
+
+    monkeypatch.setattr(pipeline_module, "build_session_analytics", analytics_stub)
     monkeypatch.setattr(
         pipeline_module,
         "build_baseline_driver_scores",

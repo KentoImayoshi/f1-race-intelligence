@@ -33,6 +33,25 @@ RAW_SESSION_LAPS_COLUMNS = [
     "ingested_at",
 ]
 
+RAW_SESSION_TELEMETRY_COLUMNS = [
+    "season",
+    "round",
+    "grand_prix",
+    "session",
+    "driver_code",
+    "lap_number",
+    "speed_i1_kph",
+    "speed_i2_kph",
+    "speed_fl_kph",
+    "speed_st_kph",
+    "tyre_life_laps",
+    "track_status",
+    "is_pit_out_lap",
+    "is_pit_in_lap",
+    "source",
+    "ingested_at",
+]
+
 
 @dataclass(frozen=True)
 class RawSessionResult:
@@ -91,6 +110,46 @@ class RawSessionLap:
             "compound": self.compound,
             "stint": self.stint,
             "is_personal_best": self.is_personal_best,
+            "source": self.source,
+            "ingested_at": self.ingested_at,
+        }
+
+
+@dataclass(frozen=True)
+class RawSessionTelemetry:
+    season: int
+    round: int
+    grand_prix: str
+    session: str
+    driver_code: str
+    lap_number: int
+    speed_i1_kph: int | None
+    speed_i2_kph: int | None
+    speed_fl_kph: int | None
+    speed_st_kph: int | None
+    tyre_life_laps: int | None
+    track_status: str | None
+    is_pit_out_lap: bool | None
+    is_pit_in_lap: bool | None
+    source: str
+    ingested_at: str
+
+    def to_record(self) -> dict[str, object]:
+        return {
+            "season": self.season,
+            "round": self.round,
+            "grand_prix": self.grand_prix,
+            "session": self.session,
+            "driver_code": self.driver_code,
+            "lap_number": self.lap_number,
+            "speed_i1_kph": self.speed_i1_kph,
+            "speed_i2_kph": self.speed_i2_kph,
+            "speed_fl_kph": self.speed_fl_kph,
+            "speed_st_kph": self.speed_st_kph,
+            "tyre_life_laps": self.tyre_life_laps,
+            "track_status": self.track_status,
+            "is_pit_out_lap": self.is_pit_out_lap,
+            "is_pit_in_lap": self.is_pit_in_lap,
             "source": self.source,
             "ingested_at": self.ingested_at,
         }

@@ -8,7 +8,7 @@ from typing import Mapping, Sequence
 
 import httpx
 
-from f1_ingestion.contracts import RawSessionLap, RawSessionResult
+from f1_ingestion.contracts import RawSessionLap, RawSessionResult, RawSessionTelemetry
 
 FASTF1_SOURCE = "fastf1"
 JOLPICA_SOURCE = "jolpica"
@@ -60,6 +60,7 @@ class SourceMetadata:
     warnings: list[str] = field(default_factory=list)
     result_row_count: int = 0
     lap_row_count: int = 0
+    telemetry_row_count: int = 0
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -74,6 +75,12 @@ class SessionPayload:
 @dataclass(frozen=True)
 class LapPayload:
     laps: list[RawSessionLap]
+    metadata: SourceMetadata
+
+
+@dataclass(frozen=True)
+class TelemetryPayload:
+    telemetry: list[RawSessionTelemetry]
     metadata: SourceMetadata
 
 
@@ -125,6 +132,25 @@ def load_session_payload(request: SourceRequest, *, fetched_at: str) -> SessionP
 
 
 def load_lap_payload(request: SourceRequest, *, fetched_at: str) -> LapPayload:
+    if request.source == SEED_SOURCE:
+        laps = _seed_session_laps(fetched_at)
+        metadata = SourceMetadata(
+            source=SEED_SOURCE,
+            fetched_at=fetched_at,
+            requested_year=request.year,
+            requested_grand_prix=_stringify(request.grand_prix),
+            requested_session=request.session,
+            resolved_year=2024,
+            resolved_round=1,
+            resolved_grand_prix="Bahrain Grand Prix",
+            resolved_session="R",
+            upstream_endpoints=[],
+            warnings=[],
+            result_row_count=0,
+            lap_row_count=len(laps),
+            telemetry_row_count=0,
+        )
+        return LapPayload(laps=laps, metadata=metadata)
     if request.source == FASTF1_SOURCE:
         return _fastf1_laps_payload(request=request, fetched_at=fetched_at)
     if request.source == OPENF1_SOURCE:
@@ -133,6 +159,37 @@ def load_lap_payload(request: SourceRequest, *, fetched_at: str) -> LapPayload:
         return _jolpica_laps_payload(request=request, fetched_at=fetched_at)
     raise ValueError(
         "Lap-level raw ingestion currently supports only the fastf1, openf1, and jolpica sources"
+    )
+
+
+def load_telemetry_payload(request: SourceRequest, *, fetched_at: str) -> TelemetryPayload:
+    if request.source == SEED_SOURCE:
+        telemetry = _seed_session_telemetry(fetched_at)
+        metadata = SourceMetadata(
+            source=SEED_SOURCE,
+            fetched_at=fetched_at,
+            requested_year=request.year,
+            requested_grand_prix=_stringify(request.grand_prix),
+            requested_session=request.session,
+            resolved_year=2024,
+            resolved_round=1,
+            resolved_grand_prix="Bahrain Grand Prix",
+            resolved_session="R",
+            upstream_endpoints=[],
+            warnings=[],
+            result_row_count=0,
+            lap_row_count=0,
+            telemetry_row_count=len(telemetry),
+        )
+        return TelemetryPayload(telemetry=telemetry, metadata=metadata)
+    if request.source == FASTF1_SOURCE:
+        return _fastf1_telemetry_payload(request=request, fetched_at=fetched_at)
+    if request.source == OPENF1_SOURCE:
+        return _openf1_telemetry_payload(request=request, fetched_at=fetched_at)
+    if request.source == JOLPICA_SOURCE:
+        return _jolpica_telemetry_payload(request=request, fetched_at=fetched_at)
+    raise ValueError(
+        "Telemetry ingestion currently supports only the seed, fastf1, openf1, and jolpica sources"
     )
 
 
@@ -168,6 +225,96 @@ def _seed_session_results(ingested_at: str) -> list[RawSessionResult]:
             source=SEED_SOURCE,
             ingested_at=ingested_at,
         ),
+    ]
+
+
+def _seed_session_laps(ingested_at: str) -> list[RawSessionLap]:
+    seed_rows = [
+        ("VER", 1, 92450, 30400, 30950, 31100, "SOFT", 1, False),
+        ("VER", 2, 91880, 30120, 30780, 30980, "SOFT", 1, True),
+        ("VER", 3, 92210, 30310, 30840, 31060, "SOFT", 1, False),
+        ("PER", 1, 92980, 30620, 31140, 31220, "SOFT", 1, False),
+        ("PER", 2, 92540, 30480, 30970, 31090, "SOFT", 1, True),
+        ("PER", 3, 92810, 30570, 31020, 31220, "SOFT", 1, False),
+        ("LEC", 1, 93210, 30740, 31190, 31280, "MEDIUM", 1, False),
+        ("LEC", 2, 92890, 30560, 31040, 31290, "MEDIUM", 1, True),
+        ("LEC", 3, 93040, 30600, 31110, 31330, "MEDIUM", 1, False),
+    ]
+    return [
+        RawSessionLap(
+            season=2024,
+            round=1,
+            grand_prix="Bahrain Grand Prix",
+            session="R",
+            driver_code=driver_code,
+            lap_number=lap_number,
+            lap_time_ms=lap_time_ms,
+            sector_1_ms=sector_1_ms,
+            sector_2_ms=sector_2_ms,
+            sector_3_ms=sector_3_ms,
+            compound=compound,
+            stint=stint,
+            is_personal_best=is_personal_best,
+            source=SEED_SOURCE,
+            ingested_at=ingested_at,
+        )
+        for (
+            driver_code,
+            lap_number,
+            lap_time_ms,
+            sector_1_ms,
+            sector_2_ms,
+            sector_3_ms,
+            compound,
+            stint,
+            is_personal_best,
+        ) in seed_rows
+    ]
+
+
+def _seed_session_telemetry(ingested_at: str) -> list[RawSessionTelemetry]:
+    seed_rows = [
+        ("VER", 1, 205, 244, 288, 321, 3, "1", False, False),
+        ("VER", 2, 207, 246, 290, 324, 4, "1", False, False),
+        ("VER", 3, 206, 245, 289, 322, 5, "1", False, False),
+        ("PER", 1, 201, 240, 284, 318, 3, "1", False, False),
+        ("PER", 2, 203, 242, 286, 320, 4, "1", False, False),
+        ("PER", 3, 202, 241, 285, 319, 5, "1", False, False),
+        ("LEC", 1, 199, 238, 283, 316, 3, "1", False, False),
+        ("LEC", 2, 200, 239, 284, 317, 4, "1", False, False),
+        ("LEC", 3, 200, 239, 283, 316, 5, "1", False, False),
+    ]
+    return [
+        RawSessionTelemetry(
+            season=2024,
+            round=1,
+            grand_prix="Bahrain Grand Prix",
+            session="R",
+            driver_code=driver_code,
+            lap_number=lap_number,
+            speed_i1_kph=speed_i1_kph,
+            speed_i2_kph=speed_i2_kph,
+            speed_fl_kph=speed_fl_kph,
+            speed_st_kph=speed_st_kph,
+            tyre_life_laps=tyre_life_laps,
+            track_status=track_status,
+            is_pit_out_lap=is_pit_out_lap,
+            is_pit_in_lap=is_pit_in_lap,
+            source=SEED_SOURCE,
+            ingested_at=ingested_at,
+        )
+        for (
+            driver_code,
+            lap_number,
+            speed_i1_kph,
+            speed_i2_kph,
+            speed_fl_kph,
+            speed_st_kph,
+            tyre_life_laps,
+            track_status,
+            is_pit_out_lap,
+            is_pit_in_lap,
+        ) in seed_rows
     ]
 
 
@@ -243,6 +390,46 @@ def _fastf1_laps_payload(*, request: SourceRequest, fetched_at: str) -> LapPaylo
         lap_row_count=len(mapped),
     )
     return LapPayload(laps=mapped, metadata=metadata)
+
+
+def _fastf1_telemetry_payload(*, request: SourceRequest, fetched_at: str) -> TelemetryPayload:
+    if request.year is None or request.grand_prix is None or request.session is None:
+        raise ValueError("year, grand_prix, and session are required for fastf1 ingestion")
+    year, grand_prix, session = request.year, request.grand_prix, request.session
+    session_obj = _load_fastf1_session(year=year, grand_prix=grand_prix, session=session)
+    laps = getattr(session_obj, "laps", None)
+    if laps is None:
+        raise RuntimeError("FastF1 telemetry detail is unavailable for this session.")
+
+    round_number = int(session_obj.event["RoundNumber"])
+    event_name = _resolve_event_name(getattr(session_obj, "event", None), grand_prix)
+    records = _records_from_frame_like(laps)
+    telemetry = map_fastf1_telemetry(
+        season=year,
+        round_number=round_number,
+        grand_prix=event_name,
+        session=session,
+        laps=records,
+        ingested_at=fetched_at,
+    )
+
+    metadata = SourceMetadata(
+        source=FASTF1_SOURCE,
+        fetched_at=fetched_at,
+        requested_year=request.year,
+        requested_grand_prix=_stringify(request.grand_prix),
+        requested_session=request.session,
+        resolved_year=year,
+        resolved_round=round_number,
+        resolved_grand_prix=event_name,
+        resolved_session=session,
+        upstream_endpoints=["fastf1.get_session"],
+        warnings=[],
+        result_row_count=0,
+        lap_row_count=0,
+        telemetry_row_count=len(telemetry),
+    )
+    return TelemetryPayload(telemetry=telemetry, metadata=metadata)
 
 
 def _openf1_results_payload(*, request: SourceRequest, fetched_at: str) -> SessionPayload:
@@ -382,6 +569,72 @@ def _openf1_laps_payload(*, request: SourceRequest, fetched_at: str) -> LapPaylo
     return LapPayload(laps=records, metadata=metadata)
 
 
+def _openf1_telemetry_payload(*, request: SourceRequest, fetched_at: str) -> TelemetryPayload:
+    year, grand_prix, session = _require_context(request)
+    resolved = _resolve_openf1_session(year=year, grand_prix=grand_prix, session=session)
+    driver_map, driver_endpoint = _openf1_driver_map(resolved.session_key)
+    lap_endpoint = f"{OPENF1_BASE_URL}/laps"
+    rows = _expect_list(
+        _get_json(lap_endpoint, params={"session_key": resolved.session_key}, source=OPENF1_SOURCE),
+        source=OPENF1_SOURCE,
+    )
+
+    warnings: list[str] = []
+    telemetry: list[RawSessionTelemetry] = []
+    for row in rows:
+        driver_number = _optional_int(row.get("driver_number"))
+        driver_code = _driver_code_from_openf1_row(row, driver_map.get(driver_number))
+        lap_number = _optional_int(row.get("lap_number"))
+        if lap_number is None:
+            warnings.append(f"Skipped OpenF1 telemetry row for {driver_code}: missing lap_number.")
+            continue
+        telemetry.append(
+            RawSessionTelemetry(
+                season=resolved.year,
+                round=resolved.round_number,
+                grand_prix=resolved.grand_prix,
+                session=resolved.session_code,
+                driver_code=driver_code,
+                lap_number=lap_number,
+                speed_i1_kph=_optional_int(row.get("speed_i1")),
+                speed_i2_kph=_optional_int(row.get("speed_i2")),
+                speed_fl_kph=_optional_int(row.get("speed_fl")),
+                speed_st_kph=_optional_int(row.get("speed_st")),
+                tyre_life_laps=_optional_int(row.get("tyre_age_at_start"))
+                or _optional_int(row.get("lap_number")),
+                track_status=_optional_string(row.get("track_status")),
+                is_pit_out_lap=_optional_bool(row.get("is_pit_out_lap")),
+                is_pit_in_lap=_optional_bool(row.get("is_pit_in_lap")),
+                source=OPENF1_SOURCE,
+                ingested_at=fetched_at,
+            )
+        )
+
+    if not telemetry:
+        raise RuntimeError("OpenF1 telemetry detail returned no rows for this session.")
+
+    metadata = SourceMetadata(
+        source=OPENF1_SOURCE,
+        fetched_at=fetched_at,
+        requested_year=request.year,
+        requested_grand_prix=_stringify(request.grand_prix),
+        requested_session=request.session,
+        resolved_year=resolved.year,
+        resolved_round=resolved.round_number,
+        resolved_grand_prix=resolved.grand_prix,
+        resolved_session=resolved.session_code,
+        upstream_endpoints=[
+            _render_endpoint(lap_endpoint, {"session_key": resolved.session_key}),
+            driver_endpoint,
+        ],
+        warnings=warnings,
+        result_row_count=0,
+        lap_row_count=0,
+        telemetry_row_count=len(telemetry),
+    )
+    return TelemetryPayload(telemetry=telemetry, metadata=metadata)
+
+
 def _jolpica_results_payload(*, request: SourceRequest, fetched_at: str) -> SessionPayload:
     year, grand_prix, session = _require_context(request)
     resolved = _resolve_jolpica_round(year=year, grand_prix=grand_prix)
@@ -503,6 +756,49 @@ def _jolpica_laps_payload(*, request: SourceRequest, fetched_at: str) -> LapPayl
         lap_row_count=len(records),
     )
     return LapPayload(laps=records, metadata=metadata)
+
+
+def _jolpica_telemetry_payload(*, request: SourceRequest, fetched_at: str) -> TelemetryPayload:
+    lap_payload = _jolpica_laps_payload(request=request, fetched_at=fetched_at)
+    telemetry = [
+        RawSessionTelemetry(
+            season=lap.season,
+            round=lap.round,
+            grand_prix=lap.grand_prix,
+            session=lap.session,
+            driver_code=lap.driver_code,
+            lap_number=lap.lap_number,
+            speed_i1_kph=None,
+            speed_i2_kph=None,
+            speed_fl_kph=None,
+            speed_st_kph=None,
+            tyre_life_laps=None,
+            track_status=None,
+            is_pit_out_lap=None,
+            is_pit_in_lap=None,
+            source=lap.source,
+            ingested_at=lap.ingested_at,
+        )
+        for lap in lap_payload.laps
+    ]
+    metadata = SourceMetadata(
+        source=lap_payload.metadata.source,
+        fetched_at=lap_payload.metadata.fetched_at,
+        requested_year=lap_payload.metadata.requested_year,
+        requested_grand_prix=lap_payload.metadata.requested_grand_prix,
+        requested_session=lap_payload.metadata.requested_session,
+        resolved_year=lap_payload.metadata.resolved_year,
+        resolved_round=lap_payload.metadata.resolved_round,
+        resolved_grand_prix=lap_payload.metadata.resolved_grand_prix,
+        resolved_session=lap_payload.metadata.resolved_session,
+        upstream_endpoints=lap_payload.metadata.upstream_endpoints,
+        warnings=lap_payload.metadata.warnings
+        + ["Jolpica does not expose telemetry metrics; telemetry fields were left null."],
+        result_row_count=0,
+        lap_row_count=0,
+        telemetry_row_count=len(telemetry),
+    )
+    return TelemetryPayload(telemetry=telemetry, metadata=metadata)
 
 
 def _load_fastf1_session(*, year: int, grand_prix: str | int, session: str) -> object:
@@ -815,6 +1111,44 @@ def map_fastf1_laps(
         )
 
     return mapped
+
+
+def map_fastf1_telemetry(
+    *,
+    season: int,
+    round_number: int,
+    grand_prix: str,
+    session: str,
+    laps: Sequence[Mapping[str, object]],
+    ingested_at: str,
+) -> list[RawSessionTelemetry]:
+    telemetry: list[RawSessionTelemetry] = []
+
+    for index, row in enumerate(laps):
+        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        lap_number = _require_int(row.get("LapNumber"), "LapNumber", index=index)
+        telemetry.append(
+            RawSessionTelemetry(
+                season=season,
+                round=round_number,
+                grand_prix=grand_prix,
+                session=session,
+                driver_code=driver_code,
+                lap_number=lap_number,
+                speed_i1_kph=_optional_int(row.get("SpeedI1")),
+                speed_i2_kph=_optional_int(row.get("SpeedI2")),
+                speed_fl_kph=_optional_int(row.get("SpeedFL")),
+                speed_st_kph=_optional_int(row.get("SpeedST")),
+                tyre_life_laps=_optional_int(row.get("TyreLife")),
+                track_status=_optional_string(row.get("TrackStatus")),
+                is_pit_out_lap=_optional_bool(row.get("PitOutTime") is not None),
+                is_pit_in_lap=_optional_bool(row.get("PitInTime") is not None),
+                source=FASTF1_SOURCE,
+                ingested_at=ingested_at,
+            )
+        )
+
+    return telemetry
 
 
 def _get_json(

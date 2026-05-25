@@ -1,0 +1,31 @@
+{
+  "run_timestamp": "2026-05-25T03:31:32Z",
+  "status": "success",
+  "source": "seed",
+  "year": 2024,
+  "round": "1",
+  "session": "R",
+  "artifacts": {
+    "raw": "data/raw/raw_session_results.parquet",
+    "raw_laps": "data/raw/raw_session_laps.parquet",
+    "raw_telemetry": "data/raw/raw_session_telemetry.parquet",
+    "processed": "data/processed/processed_session_results.parquet",
+    "features": "data/features/features_session_results.parquet",
+    "lap_analysis": "data/features/analytics_session_lap_analysis.parquet",
+    "sector_performance": "data/features/analytics_session_sector_performance.parquet",
+    "tire_stints": "data/features/analytics_session_tire_stints.parquet",
+    "driver_consistency": "data/features/analytics_session_driver_consistency.parquet",
+    "pace_evolution": "data/features/analytics_session_pace_evolution.parquet",
+    "model": "data/models/baseline_session_driver_scores.parquet",
+    "insights": "data/insights/insights_session_top_drivers.parquet",
+    "explanations": "data/llm/explanations_session_top_drivers.parquet"
+  },
+  "explanation_status": "ok",
+  "provenance": {
+    "model_name": "baseline_driver_scores",
+    "explainer_name": "top_driver_explanations",
+    "model_version": "v1",
+    "explainer_version": "v1"
+  },
+  "execution_status": "success"
+}

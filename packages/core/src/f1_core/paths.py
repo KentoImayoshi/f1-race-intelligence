@@ -58,12 +58,36 @@ def raw_session_laps_path() -> Path:
     return raw_dir() / "raw_session_laps.parquet"
 
 
+def raw_session_telemetry_path() -> Path:
+    return raw_dir() / "raw_session_telemetry.parquet"
+
+
 def processed_session_results_path() -> Path:
     return processed_dir() / "processed_session_results.parquet"
 
 
 def features_session_results_path() -> Path:
     return features_dir() / "features_session_results.parquet"
+
+
+def lap_analysis_path() -> Path:
+    return features_dir() / "analytics_session_lap_analysis.parquet"
+
+
+def sector_performance_path() -> Path:
+    return features_dir() / "analytics_session_sector_performance.parquet"
+
+
+def tire_stint_summary_path() -> Path:
+    return features_dir() / "analytics_session_tire_stints.parquet"
+
+
+def driver_consistency_path() -> Path:
+    return features_dir() / "analytics_session_driver_consistency.parquet"
+
+
+def pace_evolution_path() -> Path:
+    return features_dir() / "analytics_session_pace_evolution.parquet"
 
 
 def baseline_driver_scores_path() -> Path:

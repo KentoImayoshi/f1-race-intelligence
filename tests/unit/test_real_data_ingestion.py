@@ -7,6 +7,7 @@ import pytest
 from f1_ingestion.ingestion import (
     ingest_raw_session_laps,
     ingest_raw_session_results,
+    ingest_raw_session_telemetry,
 )
 
 
@@ -215,3 +216,53 @@ def test_openf1_laps_are_normalized(tmp_path, monkeypatch: pytest.MonkeyPatch) -
     assert len(rows) == 1
     assert rows[0]["driver_code"] == "VER"
     assert rows[0]["lap_time_ms"] == 91100
+
+
+@pytest.mark.unit
+def test_openf1_telemetry_detail_is_normalized(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def stub_get_json(url: str, *, params=None, source: str):
+        if url.endswith("/sessions"):
+            return [
+                {
+                    "meeting_key": 101,
+                    "session_key": 2024,
+                    "meeting_name": "Bahrain Grand Prix",
+                    "country_name": "Bahrain",
+                    "location": "Sakhir",
+                    "date_start": "2024-03-02T12:00:00Z",
+                }
+            ]
+        if url.endswith("/drivers"):
+            return [{"driver_number": 1, "name_acronym": "VER"}]
+        if url.endswith("/laps"):
+            return [
+                {
+                    "driver_number": 1,
+                    "lap_number": 1,
+                    "speed_i1": 205,
+                    "speed_i2": 244,
+                    "speed_fl": 289,
+                    "speed_st": 321,
+                    "tyre_age_at_start": 5,
+                    "track_status": "1",
+                    "is_pit_out_lap": False,
+                    "is_pit_in_lap": False,
+                }
+            ]
+        raise AssertionError(url)
+
+    monkeypatch.setattr("f1_ingestion.sources._get_json", stub_get_json)
+
+    output_path = ingest_raw_session_telemetry(
+        output_dir=tmp_path,
+        source="openf1",
+        year=2024,
+        grand_prix=1,
+        session="R",
+    )
+
+    rows = pq.read_table(output_path).to_pylist()
+    assert len(rows) == 1
+    assert rows[0]["driver_code"] == "VER"
+    assert rows[0]["speed_st_kph"] == 321
+    assert rows[0]["tyre_life_laps"] == 5

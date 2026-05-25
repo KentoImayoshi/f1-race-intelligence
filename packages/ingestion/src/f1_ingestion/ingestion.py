@@ -8,7 +8,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from f1_ingestion.contracts import RawSessionLap, RawSessionResult
+from f1_ingestion.contracts import RawSessionLap, RawSessionResult, RawSessionTelemetry
 from f1_ingestion.metadata import write_metadata_sidecar
 from f1_ingestion.sources import (
     FASTF1_SOURCE,
@@ -24,8 +24,10 @@ from f1_ingestion.sources import (
     _resolve_event_name,
     load_lap_payload,
     load_session_payload,
+    load_telemetry_payload,
     map_fastf1_laps,
     map_fastf1_results,
+    map_fastf1_telemetry,
     utc_now,
 )
 
@@ -39,6 +41,14 @@ SUPPORTED_RESULT_SOURCES = {
     "auto",
 }
 SUPPORTED_LAP_SOURCES = {
+    SEED_SOURCE,
+    FASTF1_SOURCE,
+    OPENF1_SOURCE,
+    JOLPICA_SOURCE,
+    "auto",
+}
+SUPPORTED_TELEMETRY_SOURCES = {
+    SEED_SOURCE,
     FASTF1_SOURCE,
     OPENF1_SOURCE,
     JOLPICA_SOURCE,
@@ -46,6 +56,7 @@ SUPPORTED_LAP_SOURCES = {
 }
 AUTO_RESULT_SOURCE_ORDER = [FASTF1_SOURCE, OPENF1_SOURCE, JOLPICA_SOURCE]
 AUTO_LAP_SOURCE_ORDER = [FASTF1_SOURCE, OPENF1_SOURCE, JOLPICA_SOURCE]
+AUTO_TELEMETRY_SOURCE_ORDER = [FASTF1_SOURCE, OPENF1_SOURCE, JOLPICA_SOURCE]
 
 
 def ingest_raw_session_results(
@@ -130,6 +141,47 @@ def ingest_raw_session_laps(
     return output_path
 
 
+def ingest_raw_session_telemetry(
+    output_dir: Path,
+    source: str = FASTF1_SOURCE,
+    *,
+    year: int | None = None,
+    grand_prix: str | int | None = None,
+    session: str | None = None,
+) -> Path:
+    """Write a raw session telemetry/detail parquet file to the output directory."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ingested_at = utc_now()
+    payload = _load_telemetry_with_auto_fallback(
+        source=source,
+        year=year,
+        grand_prix=grand_prix,
+        session=session,
+        ingested_at=ingested_at,
+    )
+
+    table = pa.Table.from_pylist(
+        [record.to_record() for record in payload.telemetry],
+        schema=_telemetry_schema(),
+    )
+    output_path = output_dir / "raw_session_telemetry.parquet"
+
+    logger.info(
+        "writing raw session telemetry",
+        extra={
+            "rows": table.num_rows,
+            "path": str(output_path),
+            "source": payload.metadata.source,
+            "round": payload.metadata.resolved_round,
+            "session": payload.metadata.resolved_session,
+        },
+    )
+    pq.write_table(table, output_path)
+    write_metadata_sidecar(output_path, payload.metadata.to_dict())
+
+    return output_path
+
+
 def _load_results_with_auto_fallback(
     *,
     source: str,
@@ -185,6 +237,40 @@ def _load_laps_with_auto_fallback(
             "fastf1, openf1, and jolpica sources"
         )
     return load_lap_payload(
+        SourceRequest(
+            source=source,
+            year=year,
+            grand_prix=grand_prix,
+            session=session,
+        ),
+        fetched_at=ingested_at,
+    )
+
+
+def _load_telemetry_with_auto_fallback(
+    *,
+    source: str,
+    year: int | None,
+    grand_prix: str | int | None,
+    session: str | None,
+    ingested_at: str,
+):
+    if source == "auto":
+        return _attempt_sources(
+            ordered_sources=AUTO_TELEMETRY_SOURCE_ORDER,
+            year=year,
+            grand_prix=grand_prix,
+            session=session,
+            ingested_at=ingested_at,
+            loader=load_telemetry_payload,
+            context="telemetry",
+        )
+    if source not in SUPPORTED_TELEMETRY_SOURCES:
+        raise ValueError(
+            "Telemetry raw ingestion currently supports only the "
+            "seed, fastf1, openf1, and jolpica sources"
+        )
+    return load_telemetry_payload(
         SourceRequest(
             source=source,
             year=year,
@@ -268,13 +354,39 @@ def _laps_schema() -> pa.Schema:
     )
 
 
+def _telemetry_schema() -> pa.Schema:
+    return pa.schema(
+        [
+            ("season", pa.int64()),
+            ("round", pa.int64()),
+            ("grand_prix", pa.string()),
+            ("session", pa.string()),
+            ("driver_code", pa.string()),
+            ("lap_number", pa.int64()),
+            ("speed_i1_kph", pa.int64()),
+            ("speed_i2_kph", pa.int64()),
+            ("speed_fl_kph", pa.int64()),
+            ("speed_st_kph", pa.int64()),
+            ("tyre_life_laps", pa.int64()),
+            ("track_status", pa.string()),
+            ("is_pit_out_lap", pa.bool_()),
+            ("is_pit_in_lap", pa.bool_()),
+            ("source", pa.string()),
+            ("ingested_at", pa.string()),
+        ]
+    )
+
+
 __all__ = [
     "RawSessionLap",
     "RawSessionResult",
+    "RawSessionTelemetry",
     "ingest_raw_session_laps",
+    "ingest_raw_session_telemetry",
     "ingest_raw_session_results",
     "map_fastf1_laps",
     "map_fastf1_results",
+    "map_fastf1_telemetry",
     "_parse_optional_time_to_ms",
     "_parse_time_to_ms",
     "_records_from_results",

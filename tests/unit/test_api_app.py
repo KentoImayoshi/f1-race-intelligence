@@ -11,3 +11,4 @@ def test_app_routes_include_health() -> None:
     assert "/health" in paths
     assert "/" in paths
     assert "/api/v1/meta/last-run" in paths
+    assert "/api/v1/analytics/session-lap-analysis" in paths

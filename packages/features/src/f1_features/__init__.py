@@ -1,7 +1,20 @@
-from f1_features.contracts import FEATURE_SESSION_RESULTS_COLUMNS  # noqa: F401
-from f1_features.features import build_session_features  # noqa: F401
+from f1_features.contracts import (  # noqa: F401
+    FEATURE_SESSION_RESULTS_COLUMNS,
+    SESSION_DRIVER_CONSISTENCY_COLUMNS,
+    SESSION_LAP_ANALYSIS_COLUMNS,
+    SESSION_PACE_EVOLUTION_COLUMNS,
+    SESSION_SECTOR_PERFORMANCE_COLUMNS,
+    SESSION_TIRE_STINT_COLUMNS,
+)
+from f1_features.features import build_session_analytics, build_session_features  # noqa: F401
 
 __all__ = [
     "FEATURE_SESSION_RESULTS_COLUMNS",
+    "SESSION_DRIVER_CONSISTENCY_COLUMNS",
+    "SESSION_LAP_ANALYSIS_COLUMNS",
+    "SESSION_PACE_EVOLUTION_COLUMNS",
+    "SESSION_SECTOR_PERFORMANCE_COLUMNS",
+    "SESSION_TIRE_STINT_COLUMNS",
+    "build_session_analytics",
     "build_session_features",
 ]

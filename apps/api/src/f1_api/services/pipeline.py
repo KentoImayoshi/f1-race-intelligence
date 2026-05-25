@@ -9,8 +9,12 @@ from f1_core.run_manifest import (
     infer_execution_status,
     save_run_manifest,
 )
-from f1_features.features import build_session_features
-from f1_ingestion.ingestion import ingest_raw_session_results
+from f1_features.features import build_session_analytics, build_session_features
+from f1_ingestion.ingestion import (
+    ingest_raw_session_laps,
+    ingest_raw_session_results,
+    ingest_raw_session_telemetry,
+)
 from f1_insights.insights import build_top_driver_insights
 from f1_llm.explanations import (
     build_fallback_explanations,
@@ -50,9 +54,28 @@ def run_session_baseline_pipeline(
         grand_prix=round_value,
         session=session,
     )
+    raw_laps_path = ingest_raw_session_laps(
+        output_dir=RAW_DIR,
+        source=source,
+        year=year,
+        grand_prix=round_value,
+        session=session,
+    )
+    raw_telemetry_path = ingest_raw_session_telemetry(
+        output_dir=RAW_DIR,
+        source=source,
+        year=year,
+        grand_prix=round_value,
+        session=session,
+    )
 
     processed_path = process_session_results(raw_path=raw_path, output_dir=PROCESSED_DIR)
     features_path = build_session_features(processed_path=processed_path, output_dir=FEATURES_DIR)
+    analytics_paths = build_session_analytics(
+        laps_path=raw_laps_path,
+        telemetry_path=raw_telemetry_path,
+        output_dir=FEATURES_DIR,
+    )
     model_path = build_baseline_driver_scores(features_path=features_path, output_dir=MODELS_DIR)
     insights_path = build_top_driver_insights(baseline_path=model_path, output_dir=INSIGHTS_DIR)
     explanation_status = "ok"
@@ -67,8 +90,11 @@ def run_session_baseline_pipeline(
 
     steps = [
         "ingested raw session results",
+        "ingested raw session laps",
+        "ingested raw session telemetry",
         "processed raw data",
         "built session features",
+        "built telemetry-aware analytics artifacts",
         "computed baseline scores",
         "generated structured insights",
         "created grounded explanations",
@@ -76,8 +102,15 @@ def run_session_baseline_pipeline(
 
     artifacts = {
         "raw": str(raw_path),
+        "raw_laps": str(raw_laps_path),
+        "raw_telemetry": str(raw_telemetry_path),
         "processed": str(processed_path),
         "features": str(features_path),
+        "lap_analysis": str(analytics_paths["lap_analysis"]),
+        "sector_performance": str(analytics_paths["sector_performance"]),
+        "tire_stints": str(analytics_paths["tire_stints"]),
+        "driver_consistency": str(analytics_paths["driver_consistency"]),
+        "pace_evolution": str(analytics_paths["pace_evolution"]),
         "model": str(model_path),
         "insights": str(insights_path),
         "explanations": str(explanations_path),

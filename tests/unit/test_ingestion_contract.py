@@ -2,8 +2,10 @@ import pytest
 from f1_ingestion.contracts import (
     RAW_SESSION_LAPS_COLUMNS,
     RAW_SESSION_RESULTS_COLUMNS,
+    RAW_SESSION_TELEMETRY_COLUMNS,
     RawSessionLap,
     RawSessionResult,
+    RawSessionTelemetry,
 )
 
 
@@ -100,3 +102,53 @@ def test_raw_session_lap_to_record() -> None:
     assert record["is_personal_best"] is True
     assert record["source"] == "fastf1"
     assert record["ingested_at"] == "2026-03-13T00:00:00Z"
+
+
+@pytest.mark.unit
+def test_raw_session_telemetry_contract_columns() -> None:
+    assert RAW_SESSION_TELEMETRY_COLUMNS == [
+        "season",
+        "round",
+        "grand_prix",
+        "session",
+        "driver_code",
+        "lap_number",
+        "speed_i1_kph",
+        "speed_i2_kph",
+        "speed_fl_kph",
+        "speed_st_kph",
+        "tyre_life_laps",
+        "track_status",
+        "is_pit_out_lap",
+        "is_pit_in_lap",
+        "source",
+        "ingested_at",
+    ]
+
+
+@pytest.mark.unit
+def test_raw_session_telemetry_to_record() -> None:
+    record = RawSessionTelemetry(
+        season=2024,
+        round=1,
+        grand_prix="Bahrain Grand Prix",
+        session="R",
+        driver_code="VER",
+        lap_number=12,
+        speed_i1_kph=205,
+        speed_i2_kph=245,
+        speed_fl_kph=289,
+        speed_st_kph=321,
+        tyre_life_laps=8,
+        track_status="1",
+        is_pit_out_lap=False,
+        is_pit_in_lap=False,
+        source="fastf1",
+        ingested_at="2026-03-13T00:00:00Z",
+    ).to_record()
+
+    assert record["driver_code"] == "VER"
+    assert record["lap_number"] == 12
+    assert record["speed_st_kph"] == 321
+    assert record["tyre_life_laps"] == 8
+    assert record["track_status"] == "1"
