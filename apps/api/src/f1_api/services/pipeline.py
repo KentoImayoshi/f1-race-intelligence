@@ -15,7 +15,7 @@ from f1_ingestion.ingestion import (
     ingest_raw_session_results,
     ingest_raw_session_telemetry,
 )
-from f1_insights.insights import build_top_driver_insights
+from f1_insights.insights import build_race_intelligence, build_top_driver_insights
 from f1_llm.explanations import (
     build_fallback_explanations,
     build_top_driver_explanations,
@@ -78,6 +78,15 @@ def run_session_baseline_pipeline(
     )
     model_path = build_baseline_driver_scores(features_path=features_path, output_dir=MODELS_DIR)
     insights_path = build_top_driver_insights(baseline_path=model_path, output_dir=INSIGHTS_DIR)
+    intelligence_paths = build_race_intelligence(
+        lap_analysis_path=analytics_paths["lap_analysis"],
+        sector_performance_path=analytics_paths["sector_performance"],
+        tire_stints_path=analytics_paths["tire_stints"],
+        driver_consistency_path=analytics_paths["driver_consistency"],
+        pace_evolution_path=analytics_paths["pace_evolution"],
+        baseline_path=model_path,
+        output_dir=INSIGHTS_DIR,
+    )
     explanation_status = "ok"
     try:
         explanations_path = build_top_driver_explanations(
@@ -97,6 +106,7 @@ def run_session_baseline_pipeline(
         "built telemetry-aware analytics artifacts",
         "computed baseline scores",
         "generated structured insights",
+        "generated race intelligence artifacts",
         "created grounded explanations",
     ]
 
@@ -113,6 +123,18 @@ def run_session_baseline_pipeline(
         "pace_evolution": str(analytics_paths["pace_evolution"]),
         "model": str(model_path),
         "insights": str(insights_path),
+        "pace_degradation": str(intelligence_paths["pace_degradation"]),
+        "sector_dominance": str(intelligence_paths["sector_dominance"]),
+        "consistency_scores": str(intelligence_paths["consistency_scores"]),
+        "tire_windows": str(intelligence_paths["tire_windows"]),
+        "strategy_opportunities": str(intelligence_paths["strategy_opportunities"]),
+        "stint_strength": str(intelligence_paths["stint_strength"]),
+        "race_pace_rankings": str(intelligence_paths["race_pace_rankings"]),
+        "qualifying_race_comparison": str(intelligence_paths["qualifying_race_comparison"]),
+        "session_summaries": str(intelligence_paths["session_summaries"]),
+        "driver_reports": str(intelligence_paths["driver_reports"]),
+        "strategy_summaries": str(intelligence_paths["strategy_summaries"]),
+        "race_trends": str(intelligence_paths["race_trends"]),
         "explanations": str(explanations_path),
     }
 

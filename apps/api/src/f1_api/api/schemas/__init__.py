@@ -1,11 +1,15 @@
 from .responses import (  # noqa: F401
     BaselineDriverScoreRow,
     DriverConsistencyRow,
+    DriverIntelligenceReportRow,
     PaceEvolutionRow,
     PipelineRunArtifacts,
     PipelineRunResponse,
+    RaceTrendRow,
+    SessionIntelligenceSummaryRow,
     SessionLapAnalysisRow,
     SessionTopDriverExplanationRow,
+    StrategyInsightRow,
     TireStintSummaryRow,
     TopDriverInsightRow,
 )
@@ -13,11 +17,15 @@ from .responses import (  # noqa: F401
 __all__ = [
     "BaselineDriverScoreRow",
     "DriverConsistencyRow",
+    "DriverIntelligenceReportRow",
     "PaceEvolutionRow",
     "PipelineRunArtifacts",
     "PipelineRunResponse",
+    "RaceTrendRow",
     "SessionLapAnalysisRow",
+    "SessionIntelligenceSummaryRow",
     "SessionTopDriverExplanationRow",
+    "StrategyInsightRow",
     "TireStintSummaryRow",
     "TopDriverInsightRow",
 ]

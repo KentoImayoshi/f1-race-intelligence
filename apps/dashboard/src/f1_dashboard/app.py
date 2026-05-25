@@ -38,6 +38,10 @@ LAP_COMPARISON_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/analytics/driver-lap-comp
 TIRE_STINTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/analytics/tire-stint-summaries"
 PACE_EVOLUTION_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/analytics/pace-evolution"
 CONSISTENCY_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/analytics/driver-consistency"
+SESSION_INTELLIGENCE_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/session-summaries"
+DRIVER_REPORTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/driver-reports"
+STRATEGY_INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/strategy-insights"
+RACE_TRENDS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/race-trends"
 LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
 AUTO_REFRESH_INTERVAL_SECONDS = 60
 
@@ -116,6 +120,24 @@ def _to_frame(rows: list[dict[str, object]] | None) -> pd.DataFrame:
 
 def _ms_to_seconds(series: pd.Series) -> pd.Series:
     return (series.astype(float) / 1000.0).round(3)
+
+
+def _render_info_card(title: str, detail: str, accent: str = "#ff6b57") -> None:
+    st.markdown(
+        f"""
+        <div style="
+            border-left: 4px solid {accent};
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.7rem;
+        ">
+          <div style="font-size:0.8rem; letter-spacing:0.06em; color:#a8b3c2;">{title}</div>
+          <div style="font-size:0.98rem; color:#f3f5f7; margin-top:0.25rem;">{detail}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _render_operator_feedback(
@@ -285,13 +307,30 @@ with st.container():
 base_params = _build_params(
     year=year, round_value=round_value, session_code=session_code, limit=300
 )
-lap_rows, lap_error = _fetch_json(LAP_ANALYSIS_ENDPOINT, base_params)
-pace_rows, pace_error = _fetch_json(PACE_EVOLUTION_ENDPOINT, base_params)
-stint_rows, stint_error = _fetch_json(TIRE_STINTS_ENDPOINT, base_params)
-consistency_rows, consistency_error = _fetch_json(CONSISTENCY_ENDPOINT, base_params)
-baseline_rows, baseline_error = _fetch_json(BASELINE_ENDPOINT, base_params)
-insight_rows, insight_error = _fetch_json(INSIGHTS_ENDPOINT, base_params)
-explanation_rows, explanation_error = _fetch_json(EXPLANATIONS_ENDPOINT, base_params)
+with st.spinner("Loading race intelligence and analytics..."):
+    lap_rows, lap_error = _fetch_json(LAP_ANALYSIS_ENDPOINT, base_params)
+    pace_rows, pace_error = _fetch_json(PACE_EVOLUTION_ENDPOINT, base_params)
+    stint_rows, stint_error = _fetch_json(TIRE_STINTS_ENDPOINT, base_params)
+    consistency_rows, consistency_error = _fetch_json(CONSISTENCY_ENDPOINT, base_params)
+    baseline_rows, baseline_error = _fetch_json(BASELINE_ENDPOINT, base_params)
+    insight_rows, insight_error = _fetch_json(INSIGHTS_ENDPOINT, base_params)
+    explanation_rows, explanation_error = _fetch_json(EXPLANATIONS_ENDPOINT, base_params)
+    session_intelligence_rows, session_intelligence_error = _fetch_json(
+        SESSION_INTELLIGENCE_ENDPOINT,
+        {**base_params, "limit": 12},
+    )
+    driver_report_rows, driver_report_error = _fetch_json(
+        DRIVER_REPORTS_ENDPOINT,
+        {**base_params, "limit": 20},
+    )
+    strategy_insight_rows, strategy_insight_error = _fetch_json(
+        STRATEGY_INSIGHTS_ENDPOINT,
+        {**base_params, "limit": 20},
+    )
+    race_trend_rows, race_trend_error = _fetch_json(
+        RACE_TRENDS_ENDPOINT,
+        {**base_params, "limit": 30},
+    )
 
 lap_df = _to_frame(lap_rows)
 pace_df = _to_frame(pace_rows)
@@ -300,6 +339,10 @@ consistency_df = _to_frame(consistency_rows)
 baseline_df = _to_frame(baseline_rows)
 insight_df = _to_frame(insight_rows)
 explanation_df = _to_frame(explanation_rows)
+session_intelligence_df = _to_frame(session_intelligence_rows)
+driver_report_df = _to_frame(driver_report_rows)
+strategy_insight_df = _to_frame(strategy_insight_rows)
+race_trend_df = _to_frame(race_trend_rows)
 
 available_drivers = (
     sorted(lap_df["driver_code"].dropna().unique().tolist()) if not lap_df.empty else []
@@ -333,6 +376,14 @@ if driver_filter:
     lap_df = lap_df[lap_df["driver_code"] == driver_filter]
     pace_df = pace_df[pace_df["driver_code"] == driver_filter]
     stint_df = stint_df[stint_df["driver_code"] == driver_filter]
+    if not driver_report_df.empty and "driver_code" in driver_report_df:
+        driver_report_df = driver_report_df[driver_report_df["driver_code"] == driver_filter]
+    if not strategy_insight_df.empty and "driver_code" in strategy_insight_df:
+        strategy_insight_df = strategy_insight_df[
+            strategy_insight_df["driver_code"] == driver_filter
+        ]
+    if not race_trend_df.empty and "driver_code" in race_trend_df:
+        race_trend_df = race_trend_df[race_trend_df["driver_code"] == driver_filter]
 
 summary_cols = st.columns(4)
 if not lap_df.empty:
@@ -353,14 +404,84 @@ else:
     summary_cols[2].metric("Top speed", "—")
     summary_cols[3].metric("Primary focus", driver_filter or "Full session")
 
-tab_overview, tab_pace, tab_strategy, tab_context = st.tabs(
-    ["Overview", "Pace Evolution", "Tire Strategy", "Context"]
+tab_intelligence, tab_overview, tab_pace, tab_strategy, tab_context = st.tabs(
+    ["Race Intelligence", "Overview", "Pace Evolution", "Tire Strategy", "Context"]
 )
+
+with tab_intelligence:
+    intel_left, intel_right = st.columns([1.2, 1.0])
+    with intel_left:
+        st.subheader("Automated Session Brief")
+        st.caption(
+            "Deterministic strategic observations generated from telemetry and lap analytics."
+        )
+        if session_intelligence_error:
+            st.error(f"Session intelligence unavailable: {session_intelligence_error}")
+        elif session_intelligence_df.empty:
+            st.info("No intelligence summary available for this session.")
+        else:
+            for row in session_intelligence_df.sort_values(
+                "importance_score", ascending=False
+            ).to_dict("records"):
+                _render_info_card(
+                    str(row.get("headline", "Summary")),
+                    str(row.get("detail", "")),
+                )
+
+    with intel_right:
+        st.subheader("Driver Report")
+        st.caption(
+            "Performance, strategy, tire, and pace trend narratives for the selected driver."
+        )
+        if driver_report_error:
+            st.error(f"Driver reports unavailable: {driver_report_error}")
+        elif driver_report_df.empty:
+            st.info("Select a driver or run the pipeline to populate intelligence reports.")
+        else:
+            for row in driver_report_df.to_dict("records")[:2]:
+                _render_info_card(
+                    str(row.get("report_title", "Driver report")),
+                    str(row.get("performance_summary", "")),
+                )
+                _render_info_card(
+                    "Strategy", str(row.get("strategy_summary", "")), accent="#ffb648"
+                )
+                _render_info_card("Tyres", str(row.get("tire_summary", "")), accent="#62d2a2")
+                _render_info_card("Trend", str(row.get("trend_summary", "")), accent="#79b8ff")
+
+    trend_left, trend_right = st.columns(2)
+    with trend_left:
+        st.subheader("Strategy Calls")
+        if strategy_insight_error:
+            st.error(f"Strategy insights unavailable: {strategy_insight_error}")
+        elif strategy_insight_df.empty:
+            st.info("No strategy insight was generated for this selection.")
+        else:
+            for row in strategy_insight_df.to_dict("records")[:4]:
+                _render_info_card(
+                    str(row.get("strategy_headline", "Strategy insight")),
+                    str(row.get("strategy_detail", "")),
+                    accent="#ffd166",
+                )
+    with trend_right:
+        st.subheader("Race Trend Analysis")
+        if race_trend_error:
+            st.error(f"Race trend analysis unavailable: {race_trend_error}")
+        elif race_trend_df.empty:
+            st.info("No race trend rows are available for this selection.")
+        else:
+            for row in race_trend_df.to_dict("records")[:4]:
+                _render_info_card(
+                    str(row.get("trend_headline", "Race trend")),
+                    str(row.get("trend_detail", "")),
+                    accent="#6dd3ff",
+                )
 
 with tab_overview:
     left, right = st.columns([1.3, 1.0])
     with left:
         st.subheader("Lap Analysis")
+        st.caption("Lap-by-lap pace table with compound, stint, delta, and speed context.")
         if lap_error:
             st.error(f"Lap analysis unavailable: {lap_error}")
         elif lap_df.empty:
@@ -390,6 +511,7 @@ with tab_overview:
 
     with right:
         st.subheader("Driver Consistency")
+        st.caption("Deterministic repeatability view built from lap variance and gap control.")
         if consistency_error:
             st.error(f"Consistency view unavailable: {consistency_error}")
         elif consistency_df.empty:
@@ -416,6 +538,9 @@ with tab_overview:
 
 with tab_pace:
     st.subheader("Pace Evolution")
+    st.caption(
+        "Rolling pace curve and direct lap-time overlay to highlight fade or recovery phases."
+    )
     if pace_error:
         st.error(f"Pace evolution unavailable: {pace_error}")
     elif pace_df.empty:
@@ -445,6 +570,9 @@ with tab_pace:
 
 with tab_strategy:
     st.subheader("Tire Stint Summaries")
+    st.caption(
+        "Stint durations, tyre windows, and average pace to support strategic interpretation."
+    )
     if stint_error:
         st.error(f"Tire strategy unavailable: {stint_error}")
     elif stint_df.empty:
@@ -475,6 +603,9 @@ with tab_context:
     context_left, context_right = st.columns(2)
     with context_left:
         st.subheader("Baseline Ranking")
+        st.caption(
+            "Reference model ranking retained for compatibility with the existing product flow."
+        )
         if baseline_error:
             st.error(f"Baseline scores unavailable: {baseline_error}")
         elif baseline_df.empty:
@@ -482,6 +613,7 @@ with tab_context:
         else:
             st.dataframe(baseline_df, use_container_width=True, hide_index=True)
         st.subheader("Structured Insights")
+        st.caption("Top-driver artifact from the original insight layer.")
         if insight_error:
             st.error(f"Insights unavailable: {insight_error}")
         elif insight_df.empty:
@@ -490,6 +622,7 @@ with tab_context:
             st.dataframe(insight_df, use_container_width=True, hide_index=True)
     with context_right:
         st.subheader("Grounded Explanations")
+        st.caption("Deterministic explanation output that remains grounded in project artifacts.")
         if explanation_error:
             st.error(f"Explanations unavailable: {explanation_error}")
         elif explanation_df.empty:

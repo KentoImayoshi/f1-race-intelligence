@@ -98,5 +98,53 @@ def insights_session_top_drivers_path() -> Path:
     return insights_dir() / "insights_session_top_drivers.parquet"
 
 
+def intelligence_pace_degradation_path() -> Path:
+    return insights_dir() / "intelligence_pace_degradation.parquet"
+
+
+def intelligence_sector_dominance_path() -> Path:
+    return insights_dir() / "intelligence_sector_dominance.parquet"
+
+
+def intelligence_consistency_scores_path() -> Path:
+    return insights_dir() / "intelligence_consistency_scores.parquet"
+
+
+def intelligence_tire_windows_path() -> Path:
+    return insights_dir() / "intelligence_tire_performance_windows.parquet"
+
+
+def intelligence_strategy_opportunities_path() -> Path:
+    return insights_dir() / "intelligence_strategy_opportunities.parquet"
+
+
+def intelligence_stint_strength_path() -> Path:
+    return insights_dir() / "intelligence_stint_strength.parquet"
+
+
+def intelligence_race_pace_rankings_path() -> Path:
+    return insights_dir() / "intelligence_race_pace_rankings.parquet"
+
+
+def intelligence_qualifying_race_comparison_path() -> Path:
+    return insights_dir() / "intelligence_qualifying_race_comparison.parquet"
+
+
+def intelligence_session_summaries_path() -> Path:
+    return insights_dir() / "intelligence_session_summaries.parquet"
+
+
+def intelligence_driver_reports_path() -> Path:
+    return insights_dir() / "intelligence_driver_reports.parquet"
+
+
+def intelligence_strategy_summaries_path() -> Path:
+    return insights_dir() / "intelligence_strategy_summaries.parquet"
+
+
+def intelligence_race_trends_path() -> Path:
+    return insights_dir() / "intelligence_race_trends.parquet"
+
+
 def explanations_session_top_drivers_path() -> Path:
     return llm_dir() / "explanations_session_top_drivers.parquet"

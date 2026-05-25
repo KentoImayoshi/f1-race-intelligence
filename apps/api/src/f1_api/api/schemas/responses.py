@@ -105,6 +105,57 @@ class DriverConsistencyRow(BaseModel):
     analysis_generated_at: str
 
 
+class SessionIntelligenceSummaryRow(BaseModel):
+    season: int
+    round: int
+    grand_prix: str
+    session: str
+    summary_type: str
+    headline: str
+    detail: str
+    importance_score: float
+    intelligence_generated_at: str
+
+
+class DriverIntelligenceReportRow(BaseModel):
+    season: int
+    round: int
+    grand_prix: str
+    session: str
+    driver_code: str
+    report_title: str
+    performance_summary: str
+    strategy_summary: str
+    tire_summary: str
+    trend_summary: str
+    intelligence_generated_at: str
+
+
+class StrategyInsightRow(BaseModel):
+    season: int
+    round: int
+    grand_prix: str
+    session: str
+    driver_code: str
+    strategy_headline: str
+    strategy_detail: str
+    opportunity_type: str
+    opportunity_label: str
+    intelligence_generated_at: str
+
+
+class RaceTrendRow(BaseModel):
+    season: int
+    round: int
+    grand_prix: str
+    session: str
+    driver_code: str
+    trend_category: str
+    trend_headline: str
+    trend_detail: str
+    intelligence_generated_at: str
+
+
 class PipelineRunArtifacts(BaseModel):
     raw: str
     raw_laps: str | None = None
@@ -118,6 +169,18 @@ class PipelineRunArtifacts(BaseModel):
     pace_evolution: str | None = None
     model: str
     insights: str
+    pace_degradation: str | None = None
+    sector_dominance: str | None = None
+    consistency_scores: str | None = None
+    tire_windows: str | None = None
+    strategy_opportunities: str | None = None
+    stint_strength: str | None = None
+    race_pace_rankings: str | None = None
+    qualifying_race_comparison: str | None = None
+    session_summaries: str | None = None
+    driver_reports: str | None = None
+    strategy_summaries: str | None = None
+    race_trends: str | None = None
     explanations: str
 
 

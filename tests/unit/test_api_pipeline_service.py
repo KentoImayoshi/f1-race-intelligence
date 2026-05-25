@@ -63,6 +63,25 @@ def test_run_session_baseline_pipeline(monkeypatch):
         "build_top_driver_insights",
         make_stub("insights", "insights.parquet"),
     )
+
+    def intelligence_stub(*args, **kwargs):
+        call_order.append("intelligence")
+        return {
+            "pace_degradation": Path("pace_degradation.parquet"),
+            "sector_dominance": Path("sector_dominance.parquet"),
+            "consistency_scores": Path("consistency_scores.parquet"),
+            "tire_windows": Path("tire_windows.parquet"),
+            "strategy_opportunities": Path("strategy_opportunities.parquet"),
+            "stint_strength": Path("stint_strength.parquet"),
+            "race_pace_rankings": Path("race_pace_rankings.parquet"),
+            "qualifying_race_comparison": Path("qualifying_race_comparison.parquet"),
+            "session_summaries": Path("session_summaries.parquet"),
+            "driver_reports": Path("driver_reports.parquet"),
+            "strategy_summaries": Path("strategy_summaries.parquet"),
+            "race_trends": Path("race_trends.parquet"),
+        }
+
+    monkeypatch.setattr(pipeline_module, "build_race_intelligence", intelligence_stub)
     monkeypatch.setattr(
         pipeline_module,
         "build_top_driver_explanations",
@@ -119,10 +138,12 @@ def test_run_session_baseline_pipeline(monkeypatch):
         "analytics",
         "models",
         "insights",
+        "intelligence",
         "explanations",
     ]
     assert result["artifacts"]["raw"] == "raw.parquet"
     assert result["artifacts"]["raw_telemetry"] == "raw_telemetry.parquet"
+    assert result["artifacts"]["session_summaries"] == "session_summaries.parquet"
     assert "steps" in result
 
     assert manifest_calls, "manifest should be created"
@@ -194,6 +215,25 @@ def test_pipeline_explanation_failure_triggers_fallback(monkeypatch):
         "build_top_driver_insights",
         make_stub("insights", "insights.parquet"),
     )
+
+    def intelligence_stub(*args, **kwargs):
+        call_order.append("intelligence")
+        return {
+            "pace_degradation": Path("pace_degradation.parquet"),
+            "sector_dominance": Path("sector_dominance.parquet"),
+            "consistency_scores": Path("consistency_scores.parquet"),
+            "tire_windows": Path("tire_windows.parquet"),
+            "strategy_opportunities": Path("strategy_opportunities.parquet"),
+            "stint_strength": Path("stint_strength.parquet"),
+            "race_pace_rankings": Path("race_pace_rankings.parquet"),
+            "qualifying_race_comparison": Path("qualifying_race_comparison.parquet"),
+            "session_summaries": Path("session_summaries.parquet"),
+            "driver_reports": Path("driver_reports.parquet"),
+            "strategy_summaries": Path("strategy_summaries.parquet"),
+            "race_trends": Path("race_trends.parquet"),
+        }
+
+    monkeypatch.setattr(pipeline_module, "build_race_intelligence", intelligence_stub)
 
     def failing_explanations(*args, **kwargs):
         raise RuntimeError("boom")
