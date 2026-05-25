@@ -47,3 +47,4 @@ data/features/*
 data/models/*
 data/insights/*
 data/llm/*
+.codex
