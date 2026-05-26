@@ -163,6 +163,9 @@ class _StreamlitModule(types.ModuleType):
     def altair_chart(self, *args, **kwargs) -> None:
         return None
 
+    def html(self, *args, **kwargs) -> None:
+        return None
+
 
 class _SessionState(dict[str, object]):
     def __getattr__(self, item: str) -> object:

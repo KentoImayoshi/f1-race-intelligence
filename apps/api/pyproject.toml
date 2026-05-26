@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
+    "fastf1>=3.3.0",
     "f1-core>=0.1.0",
     "f1-features>=0.1.0",
     "f1-ingestion>=0.1.0",

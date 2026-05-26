@@ -58,6 +58,46 @@ def _format_request_error(exc: requests.RequestException) -> str:
     return str(exc)
 
 
+def _render_html_block(html: str) -> None:
+    if hasattr(st, "html"):
+        st.html(html)
+    else:
+        st.markdown(html, unsafe_allow_html=True)
+
+
+def _friendly_data_error(data_label: str, error: str | None) -> str | None:
+    if not error:
+        return None
+    lower = error.lower()
+    if "404" in error:
+        return (
+            f"{data_label} is not available yet for this session. "
+            "Run the pipeline to generate the required artifacts."
+        )
+    if "500" in error:
+        return f"{data_label} is temporarily unavailable due to an internal API error."
+    connectivity_markers = [
+        "connection refused",
+        "failed to establish a new connection",
+        "name or service not known",
+        "max retries exceeded",
+        "timed out",
+    ]
+    if any(marker in lower for marker in connectivity_markers):
+        return f"Unable to reach the API while loading {data_label.lower()}."
+    return f"Unable to load {data_label.lower()} right now."
+
+
+def _render_data_error(data_label: str, error: str | None) -> bool:
+    friendly = _friendly_data_error(data_label, error)
+    if not friendly:
+        return False
+    st.warning(friendly)
+    with st.expander(f"{data_label} technical detail", expanded=False):
+        st.caption(error or "Unknown error")
+    return True
+
+
 def _fetch_json(
     endpoint: str,
     params: MutableMapping[str, str | int],
@@ -170,8 +210,7 @@ def _render_operator_feedback(
 
 
 def _render_shell() -> None:
-    st.markdown(
-        """
+    _render_html_block("""
         <style>
         .stApp {
             background:
@@ -380,46 +419,35 @@ def _render_shell() -> None:
             }
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _render_section_header(title: str, copy: str) -> None:
-    st.markdown(
-        f"""
+    _render_html_block(f"""
         <div class="section-header">
           <div class="section-title">{title}</div>
           <div class="section-copy">{copy}</div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _render_empty_state(title: str, detail: str) -> None:
-    st.markdown(
-        f"""
+    _render_html_block(f"""
         <div class="empty-card">
           <strong>{title}</strong><br/>
           {detail}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _render_story_card(title: str, detail: str, tag: str, accent: str) -> None:
-    st.markdown(
-        f"""
+    _render_html_block(f"""
         <div class="story-card" style="box-shadow: inset 4px 0 0 {accent};">
           <div class="story-tag">{tag}</div>
           <div class="story-headline">{title}</div>
           <div class="story-detail">{detail}</div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _driver_color_scale(drivers: list[str]) -> alt.Scale:
@@ -711,8 +739,7 @@ def _build_executive_summary(
 
 
 def _render_hero(context: dict[str, str]) -> None:
-    st.markdown(
-        f"""
+    _render_html_block(f"""
         <div class="hero-shell">
           <div class="eyebrow">Executive Race Intelligence</div>
           <h1 class="hero-title">{context['title']}</h1>
@@ -736,15 +763,14 @@ def _render_hero(context: dict[str, str]) -> None:
             </div>
           </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _render_executive_overview(
     summary_cards: list[dict[str, str]],
     spotlight: dict[str, str],
     latest_run_error: str | None,
+    is_pre_run: bool,
 ) -> None:
     _render_section_header(
         "Executive Overview",
@@ -754,32 +780,39 @@ def _render_executive_overview(
         ),
     )
 
-    metric_html = "".join(f"""
-        <div class="metric-card" style="box-shadow: inset 4px 0 0 {card['accent']};">
-          <div class="metric-kicker">{card['title']}</div>
-          <div class="metric-value">{card['value']}</div>
-          <div class="metric-detail">{card['detail']}</div>
-          <div class="metric-context">{card['context']}</div>
-        </div>
-        """ for card in summary_cards)
-    st.markdown(f'<div class="card-grid">{metric_html}</div>', unsafe_allow_html=True)
+    card_cols = st.columns(3)
+    for idx, card in enumerate(summary_cards):
+        with card_cols[idx % 3]:
+            _render_html_block(f"""
+                <div class="metric-card" style="box-shadow: inset 4px 0 0 {card['accent']};">
+                  <div class="metric-kicker">{card['title']}</div>
+                  <div class="metric-value">{card['value']}</div>
+                  <div class="metric-detail">{card['detail']}</div>
+                  <div class="metric-context">{card['context']}</div>
+                </div>
+                """)
 
     spotlight_left, spotlight_right = st.columns([1.45, 1.0])
     with spotlight_left:
-        st.markdown(
-            f"""
+        _render_html_block(f"""
             <div class="spotlight-card">
               <div class="story-tag">{spotlight['tag']}</div>
               <div class="spotlight-title">{spotlight['title']}</div>
               <div class="spotlight-detail">{spotlight['detail']}</div>
               <div class="small-note">{spotlight['context']}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            """)
     with spotlight_right:
         if latest_run_error:
             _render_empty_state("Run metadata unavailable", latest_run_error)
+        elif is_pre_run:
+            _render_empty_state(
+                "No completed run yet",
+                (
+                    "Use the pipeline form in the sidebar to run a session. "
+                    "The executive cards and intelligence stories will populate automatically."
+                ),
+            )
         else:
             _render_story_card(
                 "Briefing design",
@@ -829,8 +862,7 @@ def _render_story_column(
 def _render_driver_reports(driver_report_df: pd.DataFrame, driver_report_error: str | None) -> None:
     st.subheader("Driver Intelligence Summaries")
     st.caption("Performance, strategy, tyre behavior, and trend cues for the current focus set.")
-    if driver_report_error:
-        st.error(f"Driver reports unavailable: {driver_report_error}")
+    if _render_data_error("Driver intelligence reports", driver_report_error):
         return
     if driver_report_df.empty:
         _render_empty_state(
@@ -840,8 +872,7 @@ def _render_driver_reports(driver_report_df: pd.DataFrame, driver_report_error: 
         return
 
     for row in driver_report_df.to_dict("records")[:3]:
-        st.markdown(
-            f"""
+        _render_html_block(f"""
             <div class="story-card" style="box-shadow: inset 4px 0 0 #62d2a2;">
               <div class="story-tag">{row.get('driver_code', 'driver')}</div>
               <div class="story-headline">{row.get('report_title', 'Driver report')}</div>
@@ -852,17 +883,14 @@ def _render_driver_reports(driver_report_df: pd.DataFrame, driver_report_error: 
                 <strong>Trend:</strong> {row.get('trend_summary', '')}
               </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            """)
 
 
 def _render_latest_run_summary(
     latest_run_data: dict[str, object] | None, latest_run_error: str | None
 ) -> None:
     st.subheader("Pipeline Status")
-    if latest_run_error:
-        st.warning(f"Unable to fetch latest run: {latest_run_error}")
+    if _render_data_error("Latest run metadata", latest_run_error):
         return
     if not latest_run_data:
         st.info("No successful pipeline runs recorded yet.")
@@ -1228,6 +1256,19 @@ context = _session_context(
     session_code,
     driver_filter,
 )
+is_pre_run = latest_run_data is None and all(
+    frame.empty
+    for frame in [
+        full_lap_df,
+        full_pace_df,
+        full_stint_df,
+        full_consistency_df,
+        session_intelligence_df,
+        full_driver_report_df,
+        full_strategy_insight_df,
+        full_race_trend_df,
+    ]
+)
 
 _render_hero(context)
 _render_operator_feedback(pipeline_status, pipeline_error, latest_run_data)
@@ -1249,7 +1290,7 @@ if auto_refresh:
         latest_run_data = state.get("latest_run_data")
         latest_run_error = state.get("latest_run_error")
 
-_render_executive_overview(summary_cards, spotlight, latest_run_error)
+_render_executive_overview(summary_cards, spotlight, latest_run_error, is_pre_run)
 
 summary_cols = st.columns(4)
 summary_cols[0].metric("Valid laps", int(full_lap_df.shape[0]) if not full_lap_df.empty else 0)
@@ -1276,8 +1317,8 @@ tab_brief, tab_performance, tab_strategy, tab_artifacts = st.tabs(
 with tab_brief:
     brief_left, brief_right = st.columns([1.2, 1.0])
     with brief_left:
-        if session_intelligence_error:
-            st.error(f"Session intelligence unavailable: {session_intelligence_error}")
+        if _render_data_error("Session intelligence summaries", session_intelligence_error):
+            pass
         else:
             _render_story_column(
                 "Key Race Insights",
@@ -1298,8 +1339,8 @@ with tab_brief:
                 "#ff6b57",
                 "No intelligence summary available for this session.",
             )
-        if strategy_insight_error:
-            st.error(f"Strategy insights unavailable: {strategy_insight_error}")
+        if _render_data_error("Strategy insights", strategy_insight_error):
+            pass
         else:
             _render_story_column(
                 "Strategy Summaries",
@@ -1312,8 +1353,8 @@ with tab_brief:
                 "No strategy summary is available for the current selection.",
             )
     with brief_right:
-        if race_trend_error:
-            st.error(f"Race trend analysis unavailable: {race_trend_error}")
+        if _render_data_error("Race trend analysis", race_trend_error):
+            pass
         else:
             _render_story_column(
                 "Trend Highlights",
@@ -1342,8 +1383,8 @@ with tab_performance:
     with perf_top_left:
         st.subheader("Pace Evolution")
         st.caption("Rolling pace curves emphasize fade, recovery, and race management shape.")
-        if pace_error:
-            st.error(f"Pace evolution unavailable: {pace_error}")
+        if _render_data_error("Pace evolution", pace_error):
+            pass
         elif pace_df.empty:
             _render_empty_state("Pace evolution unavailable", "No pace evolution data available.")
         else:
@@ -1388,8 +1429,8 @@ with tab_performance:
     with perf_top_right:
         st.subheader("Sector Dominance")
         st.caption("Average sector bars make control areas obvious in one glance.")
-        if lap_error:
-            st.error(f"Sector comparison unavailable: {lap_error}")
+        if _render_data_error("Sector comparison", lap_error):
+            pass
         elif lap_df.empty:
             _render_empty_state("Sector comparison unavailable", "No lap data is available.")
         else:
@@ -1399,8 +1440,8 @@ with tab_performance:
     with perf_bottom_left:
         st.subheader("Performance Envelope")
         st.caption("Lap time versus top speed reveals efficiency and tyre-life trade-offs.")
-        if lap_error:
-            st.error(f"Performance envelope unavailable: {lap_error}")
+        if _render_data_error("Performance envelope", lap_error):
+            pass
         elif lap_df.empty or "top_speed_kph" not in lap_df.columns:
             _render_empty_state(
                 "Performance envelope unavailable",
@@ -1411,8 +1452,8 @@ with tab_performance:
     with perf_bottom_right:
         st.subheader("Consistency Benchmark")
         st.caption("A clean repeatability ranking to support race-engineering conversations.")
-        if consistency_error:
-            st.error(f"Consistency view unavailable: {consistency_error}")
+        if _render_data_error("Consistency benchmark", consistency_error):
+            pass
         elif full_consistency_df.empty:
             _render_empty_state(
                 "Consistency benchmark unavailable",
@@ -1433,8 +1474,8 @@ with tab_strategy:
     with strategy_left:
         st.subheader("Tire Stint Timeline")
         st.caption("Horizontal stint windows read like a strategy wall rather than a raw table.")
-        if stint_error:
-            st.error(f"Tire strategy unavailable: {stint_error}")
+        if _render_data_error("Tire stint timeline", stint_error):
+            pass
         elif stint_df.empty:
             _render_empty_state("Tire stint timeline unavailable", "No tire stint data available.")
         else:
@@ -1442,8 +1483,8 @@ with tab_strategy:
     with strategy_right:
         st.subheader("Stint Strength")
         st.caption("Average compound pace by stint to highlight strategic winners and weak phases.")
-        if stint_error:
-            st.error(f"Stint strength unavailable: {stint_error}")
+        if _render_data_error("Stint strength", stint_error):
+            pass
         elif stint_df.empty:
             _render_empty_state("Stint strength unavailable", "No tire stint data available.")
         else:
@@ -1489,7 +1530,7 @@ with tab_artifacts:
                 "Reference model ranking retained for compatibility with the existing product flow."
             )
             if baseline_error:
-                st.error(f"Baseline scores unavailable: {baseline_error}")
+                _render_data_error("Baseline scores", baseline_error)
             elif baseline_df.empty:
                 st.info("No baseline scores available.")
             else:
@@ -1498,7 +1539,7 @@ with tab_artifacts:
             st.subheader("Structured Insights")
             st.caption("Original top-driver artifact preserved as supporting context.")
             if insight_error:
-                st.error(f"Insights unavailable: {insight_error}")
+                _render_data_error("Structured insights", insight_error)
             elif insight_df.empty:
                 st.info("No structured insights available.")
             else:
@@ -1507,7 +1548,7 @@ with tab_artifacts:
         with st.expander("Lap analysis and consistency tables", expanded=False):
             st.subheader("Lap Analysis")
             if lap_error:
-                st.error(f"Lap analysis unavailable: {lap_error}")
+                _render_data_error("Lap analysis", lap_error)
             elif lap_df.empty:
                 st.info("Run the pipeline for this session to populate lap analysis.")
             else:
@@ -1535,7 +1576,7 @@ with tab_artifacts:
 
             st.subheader("Driver Consistency")
             if consistency_error:
-                st.error(f"Consistency view unavailable: {consistency_error}")
+                _render_data_error("Consistency table", consistency_error)
             elif full_consistency_df.empty:
                 st.info("No consistency summary available for this session.")
             else:
@@ -1562,7 +1603,7 @@ with tab_artifacts:
             st.subheader("Grounded Explanations")
             st.caption("Deterministic explanation output retained as a supporting narrative layer.")
             if explanation_error:
-                st.error(f"Explanations unavailable: {explanation_error}")
+                _render_data_error("Grounded explanations", explanation_error)
             elif explanation_df.empty:
                 st.info("No explanations available.")
             else:

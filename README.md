@@ -8,11 +8,17 @@ This repo is a Python monorepo with modular packages and apps. It focuses on a m
 bash scripts/bootstrap_dev.sh
 ```
 
+The bootstrap script now validates that `fastf1` is importable at the end of the install
+process, so local environments fail early if real-data ingestion dependencies are incomplete.
+
 ## Run API
 
 ```bash
 uvicorn f1_api.main:app --reload
 ```
+
+`apps/api` declares `fastf1` as a runtime dependency (in addition to `packages/ingestion`) so
+`pip install -e apps/api` environments remain consistent with Docker/bootstrap behavior.
 
 ## Run Dashboard
 

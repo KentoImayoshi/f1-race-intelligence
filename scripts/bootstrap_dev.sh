@@ -15,3 +15,6 @@ python -m pip install -e apps/api
 python -m pip install -e apps/dashboard
 
 python -m pip install pytest ruff black httpx
+
+# FastF1 is required by the real-data ingestion path used by the API pipeline.
+python -c "import fastf1"
