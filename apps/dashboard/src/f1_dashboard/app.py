@@ -95,14 +95,22 @@ def _timestamp_label(ts: datetime | None) -> str:
 
 
 def _build_params(
-    season: int,
+    *,
+    year: int | None = None,
+    season: int | None = None,
     round_value: int,
     session_code: str,
     driver_code: str | None = None,
     limit: int = 200,
 ) -> dict[str, str | int]:
+    if year is None and season is None:
+        raise ValueError("Either 'year' or 'season' must be provided.")
+    if year is not None and season is not None and year != season:
+        raise ValueError("'year' and 'season' must match when both are provided.")
+
+    resolved_season = season if season is not None else year
     params: dict[str, str | int] = {
-        "season": season,
+        "season": resolved_season,
         "round": round_value,
         "session": session_code,
         "limit": limit,
@@ -362,12 +370,14 @@ if driver_filter and selected_compare_driver != "None":
     comparison_rows, comparison_error = _fetch_json(
         LAP_COMPARISON_ENDPOINT,
         {
-            "season": year,
-            "round": round_value,
-            "session": session_code,
-            "driver": driver_filter,
+            **_build_params(
+                year=year,
+                round_value=round_value,
+                session_code=session_code,
+                driver_code=driver_filter,
+                limit=300,
+            ),
             "compare_driver": selected_compare_driver,
-            "limit": 300,
         },
     )
     comparison_df = _to_frame(comparison_rows)
