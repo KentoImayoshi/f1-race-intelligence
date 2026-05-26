@@ -160,6 +160,9 @@ class _StreamlitModule(types.ModuleType):
     def json(self, *args, **kwargs) -> None:
         return None
 
+    def altair_chart(self, *args, **kwargs) -> None:
+        return None
+
 
 class _SessionState(dict[str, object]):
     def __getattr__(self, item: str) -> object:
@@ -259,3 +262,100 @@ def test_dashboard_import_uses_consistent_query_params(
         assert "year" not in params
         assert params["round"] == 1
         assert params["session"] == "R"
+
+
+@pytest.mark.unit
+def test_build_executive_summary_surfaces_expected_leaders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app_module, _ = _load_dashboard_app(monkeypatch)
+
+    lap_df = app_module.pd.DataFrame(
+        [
+            {
+                "driver_code": "VER",
+                "lap_time_seconds": 91.2,
+                "top_speed_kph": 324,
+                "sector_1_ms": 30500,
+                "sector_2_ms": 30900,
+                "sector_3_ms": 31100,
+            },
+            {
+                "driver_code": "LEC",
+                "lap_time_seconds": 91.9,
+                "top_speed_kph": 319,
+                "sector_1_ms": 30700,
+                "sector_2_ms": 30880,
+                "sector_3_ms": 31200,
+            },
+        ]
+    )
+    consistency_df = app_module.pd.DataFrame(
+        [
+            {"driver_code": "LEC", "consistency_index": 0.93, "lap_time_stddev_ms": 90},
+            {"driver_code": "VER", "consistency_index": 0.82, "lap_time_stddev_ms": 150},
+        ]
+    )
+    stint_df = app_module.pd.DataFrame(
+        [
+            {
+                "driver_code": "VER",
+                "lap_count": 10,
+                "avg_delta_to_fastest_ms": 150,
+                "best_lap_time_ms": 91200,
+                "compound": "SOFT",
+                "start_lap": 1,
+                "end_lap": 10,
+            },
+            {
+                "driver_code": "LEC",
+                "lap_count": 10,
+                "avg_delta_to_fastest_ms": 300,
+                "best_lap_time_ms": 91900,
+                "compound": "MEDIUM",
+                "start_lap": 1,
+                "end_lap": 10,
+            },
+        ]
+    )
+    pace_df = app_module.pd.DataFrame(
+        [
+            {"driver_code": "VER", "lap_number": 1, "rolling_avg_lap_time_ms": 91000},
+            {"driver_code": "VER", "lap_number": 2, "rolling_avg_lap_time_ms": 91450},
+            {"driver_code": "LEC", "lap_number": 1, "rolling_avg_lap_time_ms": 91900},
+            {"driver_code": "LEC", "lap_number": 2, "rolling_avg_lap_time_ms": 92020},
+        ]
+    )
+    session_intelligence_df = app_module.pd.DataFrame(
+        [
+            {
+                "headline": "VER controls the race",
+                "detail": "Clear pace and strategy advantage.",
+                "summary_type": "driver_performance",
+                "importance_score": 99.0,
+            }
+        ]
+    )
+
+    summary_cards, spotlight = app_module._build_executive_summary(
+        lap_df,
+        consistency_df,
+        stint_df,
+        pace_df,
+        session_intelligence_df,
+    )
+
+    assert {card["title"] for card in summary_cards} == {
+        "Fastest Driver",
+        "Most Consistent",
+        "Tire Strategy Winner",
+        "Biggest Pace Degradation",
+        "Sector Dominance Leader",
+    }
+    cards_by_title = {card["title"]: card for card in summary_cards}
+    assert cards_by_title["Fastest Driver"]["value"] == "VER"
+    assert cards_by_title["Most Consistent"]["value"] == "LEC"
+    assert cards_by_title["Tire Strategy Winner"]["value"] == "VER"
+    assert cards_by_title["Biggest Pace Degradation"]["value"] == "VER"
+    assert cards_by_title["Sector Dominance Leader"]["value"] == "VER"
+    assert spotlight["title"] == "VER controls the race"

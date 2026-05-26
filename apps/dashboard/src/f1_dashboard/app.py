@@ -1,7 +1,8 @@
 import os
 from datetime import datetime, timezone
-from typing import MutableMapping
+from typing import Any, MutableMapping
 
+import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
@@ -44,6 +45,7 @@ STRATEGY_INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/strategy-
 RACE_TRENDS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/race-trends"
 LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
 AUTO_REFRESH_INTERVAL_SECONDS = 60
+ACCENT_COLORS = ["#ff6b57", "#ffb648", "#62d2a2", "#79b8ff", "#ffd166", "#d58cff"]
 
 
 def _format_request_error(exc: requests.RequestException) -> str:
@@ -127,25 +129,26 @@ def _to_frame(rows: list[dict[str, object]] | None) -> pd.DataFrame:
 
 
 def _ms_to_seconds(series: pd.Series) -> pd.Series:
-    return (series.astype(float) / 1000.0).round(3)
+    return (pd.to_numeric(series, errors="coerce") / 1000.0).round(3)
 
 
-def _render_info_card(title: str, detail: str, accent: str = "#ff6b57") -> None:
-    st.markdown(
-        f"""
-        <div style="
-            border-left: 4px solid {accent};
-            background: rgba(255,255,255,0.04);
-            border-radius: 12px;
-            padding: 0.9rem 1rem;
-            margin-bottom: 0.7rem;
-        ">
-          <div style="font-size:0.8rem; letter-spacing:0.06em; color:#a8b3c2;">{title}</div>
-          <div style="font-size:0.98rem; color:#f3f5f7; margin-top:0.25rem;">{detail}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+def _format_ms_delta(value_ms: float | int | None) -> str:
+    if value_ms is None or pd.isna(value_ms):
+        return "—"
+    seconds = float(value_ms) / 1000.0
+    return f"{seconds:+.3f}s"
+
+
+def _format_ms(value_ms: float | int | None) -> str:
+    if value_ms is None or pd.isna(value_ms):
+        return "—"
+    return f"{float(value_ms):,.0f} ms"
+
+
+def _format_seconds(value_s: float | int | None) -> str:
+    if value_s is None or pd.isna(value_s):
+        return "—"
+    return f"{float(value_s):.3f}s"
 
 
 def _render_operator_feedback(
@@ -166,10 +169,698 @@ def _render_operator_feedback(
         st.caption(detail)
 
 
+def _render_shell() -> None:
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(214, 58, 43, 0.26), transparent 24%),
+                radial-gradient(circle at top right, rgba(255, 183, 77, 0.18), transparent 18%),
+                linear-gradient(180deg, #071018 0%, #0d1620 48%, #131c28 100%);
+            color: #eff4fa;
+        }
+        .block-container {
+            padding-top: 1.35rem;
+            padding-bottom: 2.4rem;
+            max-width: 1460px;
+        }
+        div[data-testid="stHorizontalBlock"] > div {
+            min-width: 0;
+        }
+        .hero-shell {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 24px;
+            padding: 1.65rem 1.65rem 1.3rem 1.65rem;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)),
+                linear-gradient(135deg, rgba(255,107,87,0.08), rgba(121,184,255,0.03));
+            backdrop-filter: blur(12px);
+            box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
+            margin-bottom: 1.1rem;
+        }
+        .hero-shell::after {
+            content: "";
+            position: absolute;
+            inset: auto -8% -38% auto;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(255,107,87,0.20), transparent 65%);
+            pointer-events: none;
+        }
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 0.74rem;
+            color: #8ca2b8;
+            margin-bottom: 0.45rem;
+        }
+        .hero-title {
+            font-size: 2.7rem;
+            line-height: 1.02;
+            font-weight: 700;
+            margin: 0;
+            color: #f4f8fb;
+        }
+        .hero-copy {
+            margin-top: 0.7rem;
+            max-width: 860px;
+            color: #c7d3df;
+            font-size: 1.02rem;
+        }
+        .hero-meta {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.8rem;
+            margin-top: 1.25rem;
+        }
+        .meta-pill {
+            border-radius: 16px;
+            padding: 0.85rem 1rem;
+            background: rgba(8, 16, 26, 0.62);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .meta-label {
+            font-size: 0.72rem;
+            color: #8ca2b8;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+        .meta-value {
+            margin-top: 0.24rem;
+            font-size: 1.02rem;
+            color: #f3f7fb;
+            font-weight: 600;
+        }
+        .section-header {
+            margin: 1.05rem 0 0.35rem 0;
+        }
+        .section-title {
+            margin: 0;
+            font-size: 1.32rem;
+            color: #f5f8fb;
+        }
+        .section-copy {
+            color: #9eb0c1;
+            margin-top: 0.28rem;
+            font-size: 0.95rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin-top: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+        .metric-card {
+            border-radius: 20px;
+            padding: 1.08rem 1.08rem 1rem 1.08rem;
+            min-height: 168px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+                rgba(8, 15, 24, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .metric-kicker {
+            font-size: 0.74rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #95a7b9;
+            margin-bottom: 0.52rem;
+        }
+        .metric-value {
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 700;
+            color: #f8fbff;
+        }
+        .metric-detail {
+            margin-top: 0.58rem;
+            color: #d0dae4;
+            font-size: 0.95rem;
+        }
+        .metric-context {
+            margin-top: 0.48rem;
+            color: #92a8bc;
+            font-size: 0.82rem;
+        }
+        .story-card {
+            border-radius: 20px;
+            padding: 1rem 1.08rem;
+            margin-bottom: 0.7rem;
+            background: rgba(10, 17, 27, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .story-tag {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #87a1b9;
+        }
+        .story-headline {
+            margin-top: 0.35rem;
+            font-size: 1.04rem;
+            font-weight: 600;
+            color: #f3f7fb;
+        }
+        .story-detail {
+            margin-top: 0.35rem;
+            color: #c7d3df;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+        .spotlight-card {
+            border-radius: 24px;
+            padding: 1.2rem 1.25rem;
+            background:
+                linear-gradient(135deg, rgba(255,107,87,0.16), rgba(121,184,255,0.08)),
+                rgba(9, 18, 29, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            min-height: 236px;
+        }
+        .spotlight-title {
+            font-size: 1.28rem;
+            font-weight: 650;
+            color: #f6fbff;
+            margin-top: 0.34rem;
+        }
+        .spotlight-detail {
+            margin-top: 0.6rem;
+            color: #d5e0ea;
+            font-size: 0.97rem;
+            line-height: 1.5;
+        }
+        .small-note {
+            margin-top: 0.75rem;
+            color: #a6b6c7;
+            font-size: 0.82rem;
+        }
+        .empty-card {
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+            background: rgba(7, 14, 23, 0.68);
+            border: 1px dashed rgba(140, 162, 184, 0.35);
+            color: #a8b9ca;
+            margin-bottom: 0.85rem;
+        }
+        @media (max-width: 1100px) {
+            .card-grid, .hero-meta {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 760px) {
+            .hero-title {
+                font-size: 2.05rem;
+            }
+            .card-grid, .hero-meta {
+                grid-template-columns: 1fr;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_section_header(title: str, copy: str) -> None:
+    st.markdown(
+        f"""
+        <div class="section-header">
+          <div class="section-title">{title}</div>
+          <div class="section-copy">{copy}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_empty_state(title: str, detail: str) -> None:
+    st.markdown(
+        f"""
+        <div class="empty-card">
+          <strong>{title}</strong><br/>
+          {detail}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_story_card(title: str, detail: str, tag: str, accent: str) -> None:
+    st.markdown(
+        f"""
+        <div class="story-card" style="box-shadow: inset 4px 0 0 {accent};">
+          <div class="story-tag">{tag}</div>
+          <div class="story-headline">{title}</div>
+          <div class="story-detail">{detail}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _driver_color_scale(drivers: list[str]) -> alt.Scale:
+    palette = [
+        "#ff6b57",
+        "#79b8ff",
+        "#62d2a2",
+        "#ffd166",
+        "#d58cff",
+        "#9fe870",
+        "#ff8fab",
+        "#90e0ef",
+        "#f4a261",
+        "#c0c7d1",
+    ]
+    return alt.Scale(domain=drivers, range=palette[: len(drivers)])
+
+
+def _first_value(frame: pd.DataFrame, column: str, default: str = "—") -> str:
+    if frame.empty or column not in frame.columns:
+        return default
+    value = frame[column].dropna()
+    if value.empty:
+        return default
+    return str(value.iloc[0])
+
+
+def _session_context(
+    lap_df: pd.DataFrame,
+    session_intelligence_df: pd.DataFrame,
+    latest_run_data: dict[str, object] | None,
+    year: int,
+    round_value: int,
+    session_code: str,
+    driver_filter: str | None,
+) -> dict[str, str]:
+    context_source = lap_df if not lap_df.empty else session_intelligence_df
+    grand_prix = _first_value(context_source, "grand_prix", "Race Weekend")
+    run_timestamp = (
+        str(latest_run_data.get("run_timestamp", "Unknown")) if latest_run_data else "Unknown"
+    )
+    return {
+        "grand_prix": grand_prix,
+        "title": f"{grand_prix} · {session_code} Intelligence",
+        "subtitle": (
+            "Executive briefing built from deterministic race analytics, stint behavior, "
+            "and grounded strategy intelligence."
+        ),
+        "season_round": f"{year} Round {round_value}",
+        "session": session_code,
+        "focus": driver_filter or "Full-field briefing",
+        "run_timestamp": run_timestamp,
+    }
+
+
+def _compute_sector_dominance(lap_df: pd.DataFrame) -> dict[str, str]:
+    if lap_df.empty:
+        return {
+            "value": "—",
+            "detail": "Sector performance data will appear after lap analysis loads.",
+            "context": "No sector timing available",
+        }
+
+    sector_columns = [
+        ("sector_1_ms", "S1"),
+        ("sector_2_ms", "S2"),
+        ("sector_3_ms", "S3"),
+    ]
+    sector_wins: dict[str, list[str]] = {}
+    sector_total: dict[str, float] = {}
+    for column, label in sector_columns:
+        if column not in lap_df.columns:
+            continue
+        sector_avg = (
+            lap_df.dropna(subset=[column])
+            .groupby("driver_code", as_index=False)[column]
+            .mean()
+            .sort_values(column, ascending=True)
+        )
+        if sector_avg.empty:
+            continue
+        winner = str(sector_avg.iloc[0]["driver_code"])
+        sector_wins.setdefault(winner, []).append(label)
+        sector_total[winner] = sector_total.get(winner, 0.0) + float(sector_avg.iloc[0][column])
+
+    if not sector_wins:
+        return {
+            "value": "—",
+            "detail": "Sector timing is unavailable for the current selection.",
+            "context": "No sector timing available",
+        }
+
+    winner = sorted(
+        sector_wins.items(),
+        key=lambda item: (-len(item[1]), sector_total.get(item[0], float("inf")), item[0]),
+    )[0][0]
+    won_sectors = sector_wins[winner]
+    return {
+        "value": winner,
+        "detail": f"Controlled {', '.join(won_sectors)} on average sector pace.",
+        "context": f"{len(won_sectors)} sector win(s) across the session",
+    }
+
+
+def _compute_pace_degradation(pace_df: pd.DataFrame) -> dict[str, str]:
+    if pace_df.empty:
+        return {
+            "value": "—",
+            "detail": "Pace drift will appear once rolling lap analysis is available.",
+            "context": "No pace evolution available",
+        }
+
+    candidates: list[dict[str, Any]] = []
+    for driver_code, group in pace_df.groupby("driver_code"):
+        ordered = group.sort_values("lap_number")
+        if ordered.empty:
+            continue
+        rolling = pd.to_numeric(ordered["rolling_avg_lap_time_ms"], errors="coerce").dropna()
+        if rolling.shape[0] < 2:
+            continue
+        delta_ms = float(rolling.iloc[-1] - rolling.iloc[0])
+        direction = "degradation" if delta_ms > 0 else "recovery"
+        candidates.append(
+            {
+                "driver_code": str(driver_code),
+                "delta_ms": delta_ms,
+                "direction": direction,
+                "start_ms": float(rolling.iloc[0]),
+                "end_ms": float(rolling.iloc[-1]),
+            }
+        )
+
+    if not candidates:
+        return {
+            "value": "—",
+            "detail": "Pace drift requires multiple rolling windows per driver.",
+            "context": "Not enough laps to evaluate",
+        }
+
+    top = sorted(candidates, key=lambda item: item["delta_ms"], reverse=True)[0]
+    drift_label = "largest fade" if top["delta_ms"] > 0 else "strongest late-race recovery"
+    return {
+        "value": top["driver_code"],
+        "detail": (
+            f"{_format_ms_delta(top['delta_ms'])} rolling-pace shift from first to last window."
+        ),
+        "context": drift_label,
+    }
+
+
+def _build_executive_summary(
+    lap_df: pd.DataFrame,
+    consistency_df: pd.DataFrame,
+    stint_df: pd.DataFrame,
+    pace_df: pd.DataFrame,
+    session_intelligence_df: pd.DataFrame,
+) -> tuple[list[dict[str, str]], dict[str, str]]:
+    summary_cards: list[dict[str, str]] = []
+
+    if not lap_df.empty:
+        fastest_row = lap_df.sort_values("lap_time_seconds", ascending=True).iloc[0]
+        summary_cards.append(
+            {
+                "title": "Fastest Driver",
+                "value": str(fastest_row.get("driver_code", "—")),
+                "detail": f"Best lap {_format_seconds(fastest_row.get('lap_time_seconds'))}",
+                "context": f"Top speed {fastest_row.get('top_speed_kph', '—')} kph",
+                "accent": ACCENT_COLORS[0],
+            }
+        )
+    else:
+        summary_cards.append(
+            {
+                "title": "Fastest Driver",
+                "value": "—",
+                "detail": "No lap analysis has been returned for this session.",
+                "context": "Awaiting analytics artifact",
+                "accent": ACCENT_COLORS[0],
+            }
+        )
+
+    if not consistency_df.empty:
+        top_consistency = consistency_df.sort_values("consistency_index", ascending=False).iloc[0]
+        summary_cards.append(
+            {
+                "title": "Most Consistent",
+                "value": str(top_consistency.get("driver_code", "—")),
+                "detail": f"Consistency {float(top_consistency['consistency_index']):.3f}",
+                "context": f"Std dev {_format_ms(top_consistency.get('lap_time_stddev_ms'))}",
+                "accent": ACCENT_COLORS[1],
+            }
+        )
+    else:
+        summary_cards.append(
+            {
+                "title": "Most Consistent",
+                "value": "—",
+                "detail": "Consistency rankings are not available yet.",
+                "context": "Awaiting consistency artifact",
+                "accent": ACCENT_COLORS[1],
+            }
+        )
+
+    if not stint_df.empty:
+        strategy_rank = (
+            stint_df.assign(
+                weighted_delta=lambda frame: frame["avg_delta_to_fastest_ms"] * frame["lap_count"]
+            )
+            .groupby("driver_code", as_index=False)
+            .agg(
+                total_laps=("lap_count", "sum"),
+                weighted_delta=("weighted_delta", "sum"),
+                best_lap_ms=("best_lap_time_ms", "min"),
+            )
+        )
+        strategy_rank["avg_delta_ms"] = (
+            strategy_rank["weighted_delta"] / strategy_rank["total_laps"]
+        ).round(1)
+        winner = strategy_rank.sort_values("avg_delta_ms", ascending=True).iloc[0]
+        best_stint = stint_df[stint_df["driver_code"] == winner["driver_code"]].sort_values(
+            "avg_delta_to_fastest_ms", ascending=True
+        )
+        summary_cards.append(
+            {
+                "title": "Tire Strategy Winner",
+                "value": str(winner.get("driver_code", "—")),
+                "detail": f"Weighted stint delta {_format_ms_delta(winner['avg_delta_ms'])}",
+                "context": (
+                    f"Best stint {best_stint.iloc[0]['compound']} "
+                    f"laps {best_stint.iloc[0]['start_lap']}-{best_stint.iloc[0]['end_lap']}"
+                ),
+                "accent": ACCENT_COLORS[2],
+            }
+        )
+    else:
+        summary_cards.append(
+            {
+                "title": "Tire Strategy Winner",
+                "value": "—",
+                "detail": "Stint intelligence is unavailable for this session.",
+                "context": "Awaiting tire summary artifact",
+                "accent": ACCENT_COLORS[2],
+            }
+        )
+
+    degradation = _compute_pace_degradation(pace_df)
+    summary_cards.append(
+        {
+            "title": "Biggest Pace Degradation",
+            "value": degradation["value"],
+            "detail": degradation["detail"],
+            "context": degradation["context"],
+            "accent": ACCENT_COLORS[3],
+        }
+    )
+
+    sector_dominance = _compute_sector_dominance(lap_df)
+    summary_cards.append(
+        {
+            "title": "Sector Dominance Leader",
+            "value": sector_dominance["value"],
+            "detail": sector_dominance["detail"],
+            "context": sector_dominance["context"],
+            "accent": ACCENT_COLORS[4],
+        }
+    )
+
+    if not session_intelligence_df.empty:
+        top_summary = session_intelligence_df.sort_values("importance_score", ascending=False).iloc[
+            0
+        ]
+        spotlight = {
+            "title": str(top_summary.get("headline", "Top race intelligence summary")),
+            "detail": str(top_summary.get("detail", "")),
+            "tag": str(top_summary.get("summary_type", "session intelligence")).replace("_", " "),
+            "context": f"Importance score {float(top_summary.get('importance_score', 0.0)):.0f}",
+            "accent": ACCENT_COLORS[5],
+        }
+    else:
+        spotlight = {
+            "title": "Top race intelligence summary pending",
+            "detail": "Run the pipeline or load a completed session to surface the lead storyline.",
+            "tag": "session intelligence",
+            "context": "Awaiting session summary artifact",
+            "accent": ACCENT_COLORS[5],
+        }
+
+    return summary_cards, spotlight
+
+
+def _render_hero(context: dict[str, str]) -> None:
+    st.markdown(
+        f"""
+        <div class="hero-shell">
+          <div class="eyebrow">Executive Race Intelligence</div>
+          <h1 class="hero-title">{context['title']}</h1>
+          <div class="hero-copy">{context['subtitle']}</div>
+          <div class="hero-meta">
+            <div class="meta-pill">
+              <div class="meta-label">Weekend</div>
+              <div class="meta-value">{context['season_round']}</div>
+            </div>
+            <div class="meta-pill">
+              <div class="meta-label">Session</div>
+              <div class="meta-value">{context['session']}</div>
+            </div>
+            <div class="meta-pill">
+              <div class="meta-label">Focus</div>
+              <div class="meta-value">{context['focus']}</div>
+            </div>
+            <div class="meta-pill">
+              <div class="meta-label">Latest pipeline run</div>
+              <div class="meta-value">{context['run_timestamp']}</div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_executive_overview(
+    summary_cards: list[dict[str, str]],
+    spotlight: dict[str, str],
+    latest_run_error: str | None,
+) -> None:
+    _render_section_header(
+        "Executive Overview",
+        (
+            "Immediate race winners, degradation signals, and sector control "
+            "presented as a demo-first motorsport briefing."
+        ),
+    )
+
+    metric_html = "".join(f"""
+        <div class="metric-card" style="box-shadow: inset 4px 0 0 {card['accent']};">
+          <div class="metric-kicker">{card['title']}</div>
+          <div class="metric-value">{card['value']}</div>
+          <div class="metric-detail">{card['detail']}</div>
+          <div class="metric-context">{card['context']}</div>
+        </div>
+        """ for card in summary_cards)
+    st.markdown(f'<div class="card-grid">{metric_html}</div>', unsafe_allow_html=True)
+
+    spotlight_left, spotlight_right = st.columns([1.45, 1.0])
+    with spotlight_left:
+        st.markdown(
+            f"""
+            <div class="spotlight-card">
+              <div class="story-tag">{spotlight['tag']}</div>
+              <div class="spotlight-title">{spotlight['title']}</div>
+              <div class="spotlight-detail">{spotlight['detail']}</div>
+              <div class="small-note">{spotlight['context']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with spotlight_right:
+        if latest_run_error:
+            _render_empty_state("Run metadata unavailable", latest_run_error)
+        else:
+            _render_story_card(
+                "Briefing design",
+                (
+                    "The dashboard now prioritizes conclusions first: executive calls, "
+                    "strategic posture, trend narratives, then supporting evidence."
+                ),
+                "demo priority",
+                "#79b8ff",
+            )
+            _render_story_card(
+                "Storytelling flow",
+                (
+                    "Top-level cards summarize who owned pace, consistency, sectors, "
+                    "and tire execution before the lower-level telemetry views appear."
+                ),
+                "ux rationale",
+                "#ffd166",
+            )
+
+
+def _render_story_column(
+    title: str,
+    caption: str,
+    rows: list[dict[str, object]],
+    headline_key: str,
+    detail_key: str,
+    tag_key: str,
+    accent: str,
+    empty_message: str,
+) -> None:
+    st.subheader(title)
+    st.caption(caption)
+    if not rows:
+        _render_empty_state(title, empty_message)
+        return
+
+    for row in rows:
+        _render_story_card(
+            str(row.get(headline_key, title)),
+            str(row.get(detail_key, "")),
+            str(row.get(tag_key, "")).replace("_", " "),
+            accent,
+        )
+
+
+def _render_driver_reports(driver_report_df: pd.DataFrame, driver_report_error: str | None) -> None:
+    st.subheader("Driver Intelligence Summaries")
+    st.caption("Performance, strategy, tyre behavior, and trend cues for the current focus set.")
+    if driver_report_error:
+        st.error(f"Driver reports unavailable: {driver_report_error}")
+        return
+    if driver_report_df.empty:
+        _render_empty_state(
+            "Driver intelligence pending",
+            "Select a driver or load a completed session to populate executive driver reports.",
+        )
+        return
+
+    for row in driver_report_df.to_dict("records")[:3]:
+        st.markdown(
+            f"""
+            <div class="story-card" style="box-shadow: inset 4px 0 0 #62d2a2;">
+              <div class="story-tag">{row.get('driver_code', 'driver')}</div>
+              <div class="story-headline">{row.get('report_title', 'Driver report')}</div>
+              <div class="story-detail">
+                <strong>Performance:</strong> {row.get('performance_summary', '')}<br/><br/>
+                <strong>Strategy:</strong> {row.get('strategy_summary', '')}<br/><br/>
+                <strong>Tyres:</strong> {row.get('tire_summary', '')}<br/><br/>
+                <strong>Trend:</strong> {row.get('trend_summary', '')}
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def _render_latest_run_summary(
     latest_run_data: dict[str, object] | None, latest_run_error: str | None
 ) -> None:
-    st.subheader("Session Status")
+    st.subheader("Pipeline Status")
     if latest_run_error:
         st.warning(f"Unable to fetch latest run: {latest_run_error}")
         return
@@ -231,54 +922,191 @@ def _render_pipeline_controls() -> tuple[int, int, str]:
     return year, round_value, session_code
 
 
-def _render_hero() -> None:
-    st.markdown(
-        """
-        <style>
-        .stApp {
-            background:
-                radial-gradient(circle at top left, rgba(225, 52, 52, 0.18), transparent 28%),
-                radial-gradient(circle at top right, rgba(255, 182, 72, 0.22), transparent 22%),
-                linear-gradient(180deg, #0b0d11 0%, #131720 55%, #171d27 100%);
-            color: #f5f5f5;
-        }
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-        .hero {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 1.4rem 1.5rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-            backdrop-filter: blur(8px);
-            margin-bottom: 1rem;
-        }
-        .hero h1 {
-            font-size: 2.4rem;
-            margin: 0 0 0.3rem 0;
-            letter-spacing: 0.04em;
-        }
-        .hero p {
-            margin: 0;
-            color: #c9d2dc;
-            font-size: 1rem;
-        }
-        </style>
-        <div class="hero">
-          <h1>F1 Telemetry Intelligence</h1>
-          <p>
-            Lap pace, sector execution, tire behavior, and race evolution from
-            parquet-backed session analytics.
-          </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def _build_pace_chart(pace_df: pd.DataFrame) -> alt.Chart:
+    chart_df = pace_df.copy()
+    chart_df["lap_time_seconds"] = _ms_to_seconds(chart_df["lap_time_ms"])
+    chart_df["rolling_avg_seconds"] = _ms_to_seconds(chart_df["rolling_avg_lap_time_ms"])
+    drivers = sorted(chart_df["driver_code"].dropna().astype(str).unique().tolist())
+    scale = _driver_color_scale(drivers)
+
+    base = alt.Chart(chart_df).encode(
+        x=alt.X("lap_number:Q", title="Lap"),
+        color=alt.Color("driver_code:N", title="Driver", scale=scale),
+        tooltip=[
+            alt.Tooltip("driver_code:N", title="Driver"),
+            alt.Tooltip("lap_number:Q", title="Lap"),
+            alt.Tooltip("lap_time_seconds:Q", title="Lap", format=".3f"),
+            alt.Tooltip("rolling_avg_seconds:Q", title="Rolling Avg", format=".3f"),
+            alt.Tooltip("pace_trend:N", title="Trend"),
+        ],
+    )
+    rolling = base.mark_line(strokeWidth=3).encode(
+        y=alt.Y("rolling_avg_seconds:Q", title="Lap Time (s)")
+    )
+    lap_points = base.mark_circle(size=52, opacity=0.45).encode(y="lap_time_seconds:Q")
+    return (
+        alt.layer(rolling, lap_points)
+        .properties(height=340)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
+        .configure_legend(
+            labelColor="#e8eef4",
+            titleColor="#ffffff",
+            fillColor="#0f1823",
+            strokeColor="#223040",
+            cornerRadius=10,
+            padding=12,
+        )
+    )
+
+
+def _build_performance_scatter(lap_df: pd.DataFrame) -> alt.Chart:
+    scatter_df = lap_df.dropna(subset=["top_speed_kph"]).copy()
+    scatter_df["tyre_life_laps"] = pd.to_numeric(
+        scatter_df.get("tyre_life_laps", pd.Series([1] * len(scatter_df))), errors="coerce"
+    ).fillna(1)
+    drivers = sorted(scatter_df["driver_code"].dropna().astype(str).unique().tolist())
+    scale = _driver_color_scale(drivers)
+    return (
+        alt.Chart(scatter_df)
+        .mark_circle(opacity=0.72, stroke="#0c1117", strokeWidth=1.2)
+        .encode(
+            x=alt.X("lap_time_seconds:Q", title="Lap Time (s)"),
+            y=alt.Y("top_speed_kph:Q", title="Top Speed (kph)"),
+            color=alt.Color("driver_code:N", scale=scale, title="Driver"),
+            size=alt.Size("tyre_life_laps:Q", title="Tyre Life"),
+            tooltip=[
+                alt.Tooltip("driver_code:N", title="Driver"),
+                alt.Tooltip("lap_number:Q", title="Lap"),
+                alt.Tooltip("lap_time_seconds:Q", title="Lap Time", format=".3f"),
+                alt.Tooltip("top_speed_kph:Q", title="Top Speed"),
+                alt.Tooltip("compound:N", title="Compound"),
+            ],
+        )
+        .properties(height=320)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
+    )
+
+
+def _build_sector_chart(lap_df: pd.DataFrame) -> alt.Chart:
+    sector_df = (
+        lap_df.groupby("driver_code", as_index=False)[["sector_1_ms", "sector_2_ms", "sector_3_ms"]]
+        .mean(numeric_only=True)
+        .sort_values(["sector_1_ms", "sector_2_ms", "sector_3_ms"], ascending=True)
+        .head(8)
+        .melt(id_vars="driver_code", var_name="sector", value_name="sector_ms")
+    )
+    sector_df["sector"] = sector_df["sector"].map(
+        {"sector_1_ms": "Sector 1", "sector_2_ms": "Sector 2", "sector_3_ms": "Sector 3"}
+    )
+    return (
+        alt.Chart(sector_df)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("driver_code:N", title="Driver", sort=None),
+            y=alt.Y("sector_ms:Q", title="Average Sector Time (ms)"),
+            color=alt.Color(
+                "sector:N",
+                scale=alt.Scale(
+                    domain=["Sector 1", "Sector 2", "Sector 3"],
+                    range=["#ff6b57", "#ffd166", "#79b8ff"],
+                ),
+                title="Sector",
+            ),
+            xOffset="sector:N",
+            tooltip=[
+                alt.Tooltip("driver_code:N", title="Driver"),
+                alt.Tooltip("sector:N", title="Sector"),
+                alt.Tooltip("sector_ms:Q", title="Avg Time", format=".0f"),
+            ],
+        )
+        .properties(height=320)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
+    )
+
+
+def _build_consistency_chart(consistency_df: pd.DataFrame) -> alt.Chart:
+    chart_df = consistency_df.copy().sort_values("consistency_index", ascending=False).head(8)
+    return (
+        alt.Chart(chart_df)
+        .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color="#62d2a2")
+        .encode(
+            x=alt.X("driver_code:N", title="Driver"),
+            y=alt.Y("consistency_index:Q", title="Consistency Index"),
+            tooltip=[
+                alt.Tooltip("driver_code:N", title="Driver"),
+                alt.Tooltip("consistency_index:Q", title="Consistency", format=".3f"),
+                alt.Tooltip("lap_time_stddev_ms:Q", title="Std Dev (ms)"),
+            ],
+        )
+        .properties(height=300)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
+    )
+
+
+def _build_tire_timeline_chart(stint_df: pd.DataFrame) -> alt.Chart:
+    chart_df = stint_df.copy()
+    chart_df["lap_window"] = (
+        chart_df["start_lap"].astype(str) + "-" + chart_df["end_lap"].astype(str)
+    )
+    return (
+        alt.Chart(chart_df)
+        .mark_bar(cornerRadius=8, size=16)
+        .encode(
+            x=alt.X("start_lap:Q", title="Lap Window"),
+            x2="end_lap:Q",
+            y=alt.Y("driver_code:N", title="Driver", sort="-x"),
+            color=alt.Color(
+                "compound:N",
+                title="Compound",
+                scale=alt.Scale(
+                    domain=["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"],
+                    range=["#ff6b57", "#ffd166", "#f1f1f1", "#62d2a2", "#79b8ff"],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("driver_code:N", title="Driver"),
+                alt.Tooltip("compound:N", title="Compound"),
+                alt.Tooltip("lap_window:N", title="Laps"),
+                alt.Tooltip("avg_lap_time_ms:Q", title="Avg Lap (ms)"),
+            ],
+        )
+        .properties(height=320)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
+    )
+
+
+def _build_strategy_strength_chart(stint_df: pd.DataFrame) -> alt.Chart:
+    chart_df = stint_df.copy()
+    chart_df["avg_lap_time_s"] = _ms_to_seconds(chart_df["avg_lap_time_ms"])
+    chart_df["label"] = chart_df["driver_code"] + " · " + chart_df["compound"].fillna("UNKNOWN")
+    return (
+        alt.Chart(chart_df)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5)
+        .encode(
+            x=alt.X("label:N", title="Driver / Compound", sort=None),
+            y=alt.Y("avg_lap_time_s:Q", title="Average Lap Time (s)"),
+            color=alt.Color("compound:N", title="Compound"),
+            tooltip=[
+                alt.Tooltip("driver_code:N", title="Driver"),
+                alt.Tooltip("compound:N", title="Compound"),
+                alt.Tooltip("lap_count:Q", title="Laps"),
+                alt.Tooltip("avg_lap_time_s:Q", title="Avg Lap", format=".3f"),
+                alt.Tooltip("avg_delta_to_fastest_ms:Q", title="Avg Delta (ms)"),
+            ],
+        )
+        .properties(height=320)
+        .configure_axis(labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443")
+        .configure_view(strokeOpacity=0)
     )
 
 
 st.set_page_config(page_title="F1 Telemetry Intelligence", layout="wide")
-_render_hero()
+_render_shell()
 
 if "latest_run_data" not in state:
     _refresh_latest_run()
@@ -290,32 +1118,13 @@ pipeline_result = state.get("pipeline_result")
 latest_run_data = state.get("latest_run_data")
 latest_run_error = state.get("latest_run_error")
 
-_render_operator_feedback(pipeline_status, pipeline_error, latest_run_data)
-
-auto_refresh = st.sidebar.checkbox(
-    f"Auto-refresh latest run ({AUTO_REFRESH_INTERVAL_SECONDS}s)",
-    value=state.get("latest_run_auto_refresh_enabled", False),
-    key="latest_run_auto_refresh_enabled",
-)
-if auto_refresh:
-    tick = st_autorefresh(
-        interval=AUTO_REFRESH_INTERVAL_SECONDS * 1000,
-        key="latest_run_auto_refresh_timer",
-    )
-    previous_tick = state.get("latest_run_auto_refresh_tick")
-    if previous_tick != tick:
-        state.latest_run_auto_refresh_tick = tick
-        _refresh_latest_run()
-        latest_run_data = state.get("latest_run_data")
-        latest_run_error = state.get("latest_run_error")
-
-with st.container():
-    _render_latest_run_summary(latest_run_data, latest_run_error)
-
 base_params = _build_params(
-    year=year, round_value=round_value, session_code=session_code, limit=300
+    year=year,
+    round_value=round_value,
+    session_code=session_code,
+    limit=300,
 )
-with st.spinner("Loading race intelligence and analytics..."):
+with st.spinner("Building executive race briefing..."):
     lap_rows, lap_error = _fetch_json(LAP_ANALYSIS_ENDPOINT, base_params)
     pace_rows, pace_error = _fetch_json(PACE_EVOLUTION_ENDPOINT, base_params)
     stint_rows, stint_error = _fetch_json(TIRE_STINTS_ENDPOINT, base_params)
@@ -340,20 +1149,22 @@ with st.spinner("Loading race intelligence and analytics..."):
         {**base_params, "limit": 30},
     )
 
-lap_df = _to_frame(lap_rows)
-pace_df = _to_frame(pace_rows)
-stint_df = _to_frame(stint_rows)
-consistency_df = _to_frame(consistency_rows)
+full_lap_df = _to_frame(lap_rows)
+full_pace_df = _to_frame(pace_rows)
+full_stint_df = _to_frame(stint_rows)
+full_consistency_df = _to_frame(consistency_rows)
 baseline_df = _to_frame(baseline_rows)
 insight_df = _to_frame(insight_rows)
 explanation_df = _to_frame(explanation_rows)
 session_intelligence_df = _to_frame(session_intelligence_rows)
-driver_report_df = _to_frame(driver_report_rows)
-strategy_insight_df = _to_frame(strategy_insight_rows)
-race_trend_df = _to_frame(race_trend_rows)
+full_driver_report_df = _to_frame(driver_report_rows)
+full_strategy_insight_df = _to_frame(strategy_insight_rows)
+full_race_trend_df = _to_frame(race_trend_rows)
 
 available_drivers = (
-    sorted(lap_df["driver_code"].dropna().unique().tolist()) if not lap_df.empty else []
+    sorted(full_lap_df["driver_code"].dropna().astype(str).unique().tolist())
+    if not full_lap_df.empty and "driver_code" in full_lap_df.columns
+    else []
 )
 selected_driver = st.sidebar.selectbox("Primary driver", ["All"] + available_drivers, index=0)
 comparison_candidates = [driver for driver in available_drivers if driver != selected_driver]
@@ -362,8 +1173,8 @@ selected_compare_driver = st.sidebar.selectbox(
     ["None"] + comparison_candidates,
     index=0,
 )
-
 driver_filter = None if selected_driver == "All" else selected_driver
+
 comparison_df = pd.DataFrame()
 comparison_error = None
 if driver_filter and selected_compare_driver != "None":
@@ -382,218 +1193,270 @@ if driver_filter and selected_compare_driver != "None":
     )
     comparison_df = _to_frame(comparison_rows)
 
+lap_df = full_lap_df.copy()
+pace_df = full_pace_df.copy()
+stint_df = full_stint_df.copy()
+driver_report_df = full_driver_report_df.copy()
+strategy_insight_df = full_strategy_insight_df.copy()
+race_trend_df = full_race_trend_df.copy()
 if driver_filter:
     lap_df = lap_df[lap_df["driver_code"] == driver_filter]
     pace_df = pace_df[pace_df["driver_code"] == driver_filter]
     stint_df = stint_df[stint_df["driver_code"] == driver_filter]
-    if not driver_report_df.empty and "driver_code" in driver_report_df:
+    if not driver_report_df.empty and "driver_code" in driver_report_df.columns:
         driver_report_df = driver_report_df[driver_report_df["driver_code"] == driver_filter]
-    if not strategy_insight_df.empty and "driver_code" in strategy_insight_df:
+    if not strategy_insight_df.empty and "driver_code" in strategy_insight_df.columns:
         strategy_insight_df = strategy_insight_df[
             strategy_insight_df["driver_code"] == driver_filter
         ]
-    if not race_trend_df.empty and "driver_code" in race_trend_df:
+    if not race_trend_df.empty and "driver_code" in race_trend_df.columns:
         race_trend_df = race_trend_df[race_trend_df["driver_code"] == driver_filter]
 
-summary_cols = st.columns(4)
-if not lap_df.empty:
-    summary_cols[0].metric("Valid laps", int(lap_df.shape[0]))
-    summary_cols[1].metric("Fastest lap", f"{lap_df['lap_time_seconds'].min():.3f}s")
-    summary_cols[2].metric(
-        "Top speed",
-        (
-            f"{int(lap_df['top_speed_kph'].dropna().max())} kph"
-            if lap_df["top_speed_kph"].notna().any()
-            else "—"
-        ),
-    )
-    summary_cols[3].metric("Primary focus", driver_filter or "Full session")
-else:
-    summary_cols[0].metric("Valid laps", 0)
-    summary_cols[1].metric("Fastest lap", "—")
-    summary_cols[2].metric("Top speed", "—")
-    summary_cols[3].metric("Primary focus", driver_filter or "Full session")
-
-tab_intelligence, tab_overview, tab_pace, tab_strategy, tab_context = st.tabs(
-    ["Race Intelligence", "Overview", "Pace Evolution", "Tire Strategy", "Context"]
+summary_cards, spotlight = _build_executive_summary(
+    full_lap_df,
+    full_consistency_df,
+    full_stint_df,
+    full_pace_df,
+    session_intelligence_df,
+)
+context = _session_context(
+    full_lap_df,
+    session_intelligence_df,
+    latest_run_data,
+    year,
+    round_value,
+    session_code,
+    driver_filter,
 )
 
-with tab_intelligence:
-    intel_left, intel_right = st.columns([1.2, 1.0])
-    with intel_left:
-        st.subheader("Automated Session Brief")
-        st.caption(
-            "Deterministic strategic observations generated from telemetry and lap analytics."
-        )
+_render_hero(context)
+_render_operator_feedback(pipeline_status, pipeline_error, latest_run_data)
+
+auto_refresh = st.sidebar.checkbox(
+    f"Auto-refresh latest run ({AUTO_REFRESH_INTERVAL_SECONDS}s)",
+    value=state.get("latest_run_auto_refresh_enabled", False),
+    key="latest_run_auto_refresh_enabled",
+)
+if auto_refresh:
+    tick = st_autorefresh(
+        interval=AUTO_REFRESH_INTERVAL_SECONDS * 1000,
+        key="latest_run_auto_refresh_timer",
+    )
+    previous_tick = state.get("latest_run_auto_refresh_tick")
+    if previous_tick != tick:
+        state.latest_run_auto_refresh_tick = tick
+        _refresh_latest_run()
+        latest_run_data = state.get("latest_run_data")
+        latest_run_error = state.get("latest_run_error")
+
+_render_executive_overview(summary_cards, spotlight, latest_run_error)
+
+summary_cols = st.columns(4)
+summary_cols[0].metric("Valid laps", int(full_lap_df.shape[0]) if not full_lap_df.empty else 0)
+summary_cols[1].metric(
+    "Fastest lap",
+    _format_seconds(full_lap_df["lap_time_seconds"].min()) if not full_lap_df.empty else "—",
+)
+summary_cols[2].metric(
+    "Top speed",
+    (
+        f"{int(full_lap_df['top_speed_kph'].dropna().max())} kph"
+        if not full_lap_df.empty
+        and "top_speed_kph" in full_lap_df.columns
+        and full_lap_df["top_speed_kph"].notna().any()
+        else "—"
+    ),
+)
+summary_cols[3].metric("Current focus", driver_filter or "Full field")
+
+tab_brief, tab_performance, tab_strategy, tab_artifacts = st.tabs(
+    ["Executive Brief", "Performance Lab", "Strategy Room", "Artifact Room"]
+)
+
+with tab_brief:
+    brief_left, brief_right = st.columns([1.2, 1.0])
+    with brief_left:
         if session_intelligence_error:
             st.error(f"Session intelligence unavailable: {session_intelligence_error}")
-        elif session_intelligence_df.empty:
-            st.info("No intelligence summary available for this session.")
         else:
-            for row in session_intelligence_df.sort_values(
-                "importance_score", ascending=False
-            ).to_dict("records"):
-                _render_info_card(
-                    str(row.get("headline", "Summary")),
-                    str(row.get("detail", "")),
-                )
-
-    with intel_right:
-        st.subheader("Driver Report")
-        st.caption(
-            "Performance, strategy, tire, and pace trend narratives for the selected driver."
-        )
-        if driver_report_error:
-            st.error(f"Driver reports unavailable: {driver_report_error}")
-        elif driver_report_df.empty:
-            st.info("Select a driver or run the pipeline to populate intelligence reports.")
-        else:
-            for row in driver_report_df.to_dict("records")[:2]:
-                _render_info_card(
-                    str(row.get("report_title", "Driver report")),
-                    str(row.get("performance_summary", "")),
-                )
-                _render_info_card(
-                    "Strategy", str(row.get("strategy_summary", "")), accent="#ffb648"
-                )
-                _render_info_card("Tyres", str(row.get("tire_summary", "")), accent="#62d2a2")
-                _render_info_card("Trend", str(row.get("trend_summary", "")), accent="#79b8ff")
-
-    trend_left, trend_right = st.columns(2)
-    with trend_left:
-        st.subheader("Strategy Calls")
+            _render_story_column(
+                "Key Race Insights",
+                (
+                    "Top deterministic session summaries ordered by importance "
+                    "for immediate briefings."
+                ),
+                (
+                    session_intelligence_df.sort_values(
+                        "importance_score", ascending=False
+                    ).to_dict("records")[:5]
+                    if not session_intelligence_df.empty
+                    else []
+                ),
+                "headline",
+                "detail",
+                "summary_type",
+                "#ff6b57",
+                "No intelligence summary available for this session.",
+            )
         if strategy_insight_error:
             st.error(f"Strategy insights unavailable: {strategy_insight_error}")
-        elif strategy_insight_df.empty:
-            st.info("No strategy insight was generated for this selection.")
         else:
-            for row in strategy_insight_df.to_dict("records")[:4]:
-                _render_info_card(
-                    str(row.get("strategy_headline", "Strategy insight")),
-                    str(row.get("strategy_detail", "")),
-                    accent="#ffd166",
-                )
-    with trend_right:
-        st.subheader("Race Trend Analysis")
+            _render_story_column(
+                "Strategy Summaries",
+                "Pit-window and tyre leverage opportunities elevated ahead of raw stint tables.",
+                strategy_insight_df.to_dict("records")[:4] if not strategy_insight_df.empty else [],
+                "strategy_headline",
+                "strategy_detail",
+                "opportunity_label",
+                "#ffd166",
+                "No strategy summary is available for the current selection.",
+            )
+    with brief_right:
         if race_trend_error:
             st.error(f"Race trend analysis unavailable: {race_trend_error}")
-        elif race_trend_df.empty:
-            st.info("No race trend rows are available for this selection.")
         else:
-            for row in race_trend_df.to_dict("records")[:4]:
-                _render_info_card(
-                    str(row.get("trend_headline", "Race trend")),
-                    str(row.get("trend_detail", "")),
-                    accent="#6dd3ff",
+            _render_story_column(
+                "Trend Highlights",
+                (
+                    "Driver-level pace trajectory and ranking narratives surfaced "
+                    "for demo storytelling."
+                ),
+                race_trend_df.to_dict("records")[:4] if not race_trend_df.empty else [],
+                "trend_headline",
+                "trend_detail",
+                "trend_category",
+                "#79b8ff",
+                "No trend highlights are available for the current selection.",
+            )
+        _render_driver_reports(driver_report_df, driver_report_error)
+
+with tab_performance:
+    _render_section_header(
+        "Performance Lab",
+        (
+            "High-readability visual diagnostics for pace, sector execution, "
+            "consistency, and driver comparison."
+        ),
+    )
+    perf_top_left, perf_top_right = st.columns([1.35, 1.0])
+    with perf_top_left:
+        st.subheader("Pace Evolution")
+        st.caption("Rolling pace curves emphasize fade, recovery, and race management shape.")
+        if pace_error:
+            st.error(f"Pace evolution unavailable: {pace_error}")
+        elif pace_df.empty:
+            _render_empty_state("Pace evolution unavailable", "No pace evolution data available.")
+        else:
+            st.altair_chart(_build_pace_chart(pace_df), use_container_width=True)
+            if comparison_error:
+                st.warning(f"Comparison fetch failed: {comparison_error}")
+            elif not comparison_df.empty:
+                comparison_chart_df = comparison_df.copy()
+                comparison_chart_df["lap_time_seconds"] = _ms_to_seconds(
+                    comparison_chart_df["lap_time_ms"]
                 )
-
-with tab_overview:
-    left, right = st.columns([1.3, 1.0])
-    with left:
-        st.subheader("Lap Analysis")
-        st.caption("Lap-by-lap pace table with compound, stint, delta, and speed context.")
+                drivers = sorted(
+                    comparison_chart_df["driver_code"].dropna().astype(str).unique().tolist()
+                )
+                st.caption(f"Direct comparison: {driver_filter} vs {selected_compare_driver}")
+                st.altair_chart(
+                    (
+                        alt.Chart(comparison_chart_df)
+                        .mark_line(point=True, strokeWidth=3)
+                        .encode(
+                            x=alt.X("lap_number:Q", title="Lap"),
+                            y=alt.Y("lap_time_seconds:Q", title="Lap Time (s)"),
+                            color=alt.Color(
+                                "driver_code:N",
+                                title="Driver",
+                                scale=_driver_color_scale(drivers),
+                            ),
+                            tooltip=[
+                                alt.Tooltip("driver_code:N", title="Driver"),
+                                alt.Tooltip("lap_number:Q", title="Lap"),
+                                alt.Tooltip("lap_time_seconds:Q", title="Lap Time", format=".3f"),
+                            ],
+                        )
+                        .properties(height=250)
+                        .configure_axis(
+                            labelColor="#d8e1ea", titleColor="#eff4fa", gridColor="#263443"
+                        )
+                        .configure_view(strokeOpacity=0)
+                    ),
+                    use_container_width=True,
+                )
+    with perf_top_right:
+        st.subheader("Sector Dominance")
+        st.caption("Average sector bars make control areas obvious in one glance.")
         if lap_error:
-            st.error(f"Lap analysis unavailable: {lap_error}")
+            st.error(f"Sector comparison unavailable: {lap_error}")
         elif lap_df.empty:
-            st.info("Run the pipeline for this session to populate lap analysis.")
+            _render_empty_state("Sector comparison unavailable", "No lap data is available.")
         else:
-            display_df = lap_df[
-                [
-                    "driver_code",
-                    "lap_number",
-                    "compound",
-                    "stint",
-                    "lap_time_seconds",
-                    "delta_to_fastest_ms",
-                    "top_speed_kph",
-                ]
-            ].copy()
-            display_df.columns = [
-                "Driver",
-                "Lap",
-                "Compound",
-                "Stint",
-                "Lap Time (s)",
-                "Delta (ms)",
-                "Top Speed",
-            ]
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.altair_chart(_build_sector_chart(lap_df), use_container_width=True)
 
-    with right:
-        st.subheader("Driver Consistency")
-        st.caption("Deterministic repeatability view built from lap variance and gap control.")
+    perf_bottom_left, perf_bottom_right = st.columns([1.0, 1.0])
+    with perf_bottom_left:
+        st.subheader("Performance Envelope")
+        st.caption("Lap time versus top speed reveals efficiency and tyre-life trade-offs.")
+        if lap_error:
+            st.error(f"Performance envelope unavailable: {lap_error}")
+        elif lap_df.empty or "top_speed_kph" not in lap_df.columns:
+            _render_empty_state(
+                "Performance envelope unavailable",
+                "Top speed data is required for the speed-versus-lap-time view.",
+            )
+        else:
+            st.altair_chart(_build_performance_scatter(lap_df), use_container_width=True)
+    with perf_bottom_right:
+        st.subheader("Consistency Benchmark")
+        st.caption("A clean repeatability ranking to support race-engineering conversations.")
         if consistency_error:
             st.error(f"Consistency view unavailable: {consistency_error}")
-        elif consistency_df.empty:
-            st.info("No consistency summary available for this session.")
-        else:
-            display_df = consistency_df[
-                [
-                    "driver_code",
-                    "lap_count",
-                    "avg_lap_time_ms",
-                    "lap_time_stddev_ms",
-                    "consistency_index",
-                ]
-            ].copy()
-            display_df["avg_lap_time_ms"] = _ms_to_seconds(display_df["avg_lap_time_ms"])
-            display_df.columns = [
-                "Driver",
-                "Laps",
-                "Avg Lap (s)",
-                "Std Dev (ms)",
-                "Consistency",
-            ]
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-with tab_pace:
-    st.subheader("Pace Evolution")
-    st.caption(
-        "Rolling pace curve and direct lap-time overlay to highlight fade or recovery phases."
-    )
-    if pace_error:
-        st.error(f"Pace evolution unavailable: {pace_error}")
-    elif pace_df.empty:
-        st.info("No pace evolution data available.")
-    else:
-        chart_df = pace_df.copy()
-        chart_df["lap_time_seconds"] = _ms_to_seconds(chart_df["lap_time_ms"])
-        chart_df["rolling_avg_seconds"] = _ms_to_seconds(chart_df["rolling_avg_lap_time_ms"])
-        st.line_chart(
-            chart_df,
-            x="lap_number",
-            y=["lap_time_seconds", "rolling_avg_seconds"],
-            color="driver_code" if "driver_code" in chart_df.columns else None,
-        )
-        if comparison_error:
-            st.warning(f"Comparison fetch failed: {comparison_error}")
-        elif not comparison_df.empty:
-            comparison_df = comparison_df.copy()
-            comparison_df["lap_time_seconds"] = _ms_to_seconds(comparison_df["lap_time_ms"])
-            st.caption(f"Comparison: {driver_filter} vs {selected_compare_driver}")
-            st.line_chart(
-                comparison_df,
-                x="lap_number",
-                y="lap_time_seconds",
-                color="driver_code",
+        elif full_consistency_df.empty:
+            _render_empty_state(
+                "Consistency benchmark unavailable",
+                "No consistency summary is available for this session.",
             )
+        else:
+            st.altair_chart(_build_consistency_chart(full_consistency_df), use_container_width=True)
 
 with tab_strategy:
-    st.subheader("Tire Stint Summaries")
-    st.caption(
-        "Stint durations, tyre windows, and average pace to support strategic interpretation."
+    _render_section_header(
+        "Strategy Room",
+        (
+            "Tyre usage, stint windows, and strategic strength views that foreground "
+            "race-call quality."
+        ),
     )
-    if stint_error:
-        st.error(f"Tire strategy unavailable: {stint_error}")
-    elif stint_df.empty:
-        st.info("No tire stint data available.")
-    else:
-        strategy_df = stint_df.copy()
-        strategy_df["avg_lap_time_s"] = _ms_to_seconds(strategy_df["avg_lap_time_ms"])
-        strategy_df["best_lap_time_s"] = _ms_to_seconds(strategy_df["best_lap_time_ms"])
-        st.bar_chart(strategy_df, x="compound", y="lap_count", color="driver_code")
+    strategy_left, strategy_right = st.columns([1.2, 1.0])
+    with strategy_left:
+        st.subheader("Tire Stint Timeline")
+        st.caption("Horizontal stint windows read like a strategy wall rather than a raw table.")
+        if stint_error:
+            st.error(f"Tire strategy unavailable: {stint_error}")
+        elif stint_df.empty:
+            _render_empty_state("Tire stint timeline unavailable", "No tire stint data available.")
+        else:
+            st.altair_chart(_build_tire_timeline_chart(stint_df), use_container_width=True)
+    with strategy_right:
+        st.subheader("Stint Strength")
+        st.caption("Average compound pace by stint to highlight strategic winners and weak phases.")
+        if stint_error:
+            st.error(f"Stint strength unavailable: {stint_error}")
+        elif stint_df.empty:
+            _render_empty_state("Stint strength unavailable", "No tire stint data available.")
+        else:
+            st.altair_chart(_build_strategy_strength_chart(stint_df), use_container_width=True)
+
+    if not stint_df.empty:
+        strategy_table = stint_df.copy()
+        strategy_table["avg_lap_time_s"] = _ms_to_seconds(strategy_table["avg_lap_time_ms"])
+        strategy_table["best_lap_time_s"] = _ms_to_seconds(strategy_table["best_lap_time_ms"])
+        st.subheader("Strategy Support Table")
+        st.caption("Compact validation table retained for engineering sanity checks.")
         st.dataframe(
-            strategy_df[
+            strategy_table[
                 [
                     "driver_code",
                     "stint",
@@ -602,6 +1465,7 @@ with tab_strategy:
                     "end_lap",
                     "lap_count",
                     "avg_lap_time_s",
+                    "best_lap_time_s",
                     "avg_top_speed_kph",
                 ]
             ],
@@ -609,39 +1473,109 @@ with tab_strategy:
             hide_index=True,
         )
 
-with tab_context:
-    context_left, context_right = st.columns(2)
-    with context_left:
-        st.subheader("Baseline Ranking")
-        st.caption(
-            "Reference model ranking retained for compatibility with the existing product flow."
-        )
-        if baseline_error:
-            st.error(f"Baseline scores unavailable: {baseline_error}")
-        elif baseline_df.empty:
-            st.info("No baseline scores available.")
-        else:
-            st.dataframe(baseline_df, use_container_width=True, hide_index=True)
-        st.subheader("Structured Insights")
-        st.caption("Top-driver artifact from the original insight layer.")
-        if insight_error:
-            st.error(f"Insights unavailable: {insight_error}")
-        elif insight_df.empty:
-            st.info("No structured insights available.")
-        else:
-            st.dataframe(insight_df, use_container_width=True, hide_index=True)
-    with context_right:
-        st.subheader("Grounded Explanations")
-        st.caption("Deterministic explanation output that remains grounded in project artifacts.")
-        if explanation_error:
-            st.error(f"Explanations unavailable: {explanation_error}")
-        elif explanation_df.empty:
-            st.info("No explanations available.")
-        else:
-            for row in explanation_df.to_dict("records"):
-                explanation_type = row.get("explanation_type", "Explanation")
-                explanation_text = row.get("explanation_text", "")
-                st.markdown(f"**{explanation_type}**  \n{explanation_text}")
+with tab_artifacts:
+    _render_section_header(
+        "Artifact Room",
+        (
+            "Secondary context, compatibility artifacts, and pipeline observability "
+            "retained without competing with the executive narrative."
+        ),
+    )
+    artifact_left, artifact_right = st.columns([1.05, 1.0])
+    with artifact_left:
+        with st.expander("Baseline ranking and original insight artifacts", expanded=True):
+            st.subheader("Baseline Ranking")
+            st.caption(
+                "Reference model ranking retained for compatibility with the existing product flow."
+            )
+            if baseline_error:
+                st.error(f"Baseline scores unavailable: {baseline_error}")
+            elif baseline_df.empty:
+                st.info("No baseline scores available.")
+            else:
+                st.dataframe(baseline_df, use_container_width=True, hide_index=True)
+
+            st.subheader("Structured Insights")
+            st.caption("Original top-driver artifact preserved as supporting context.")
+            if insight_error:
+                st.error(f"Insights unavailable: {insight_error}")
+            elif insight_df.empty:
+                st.info("No structured insights available.")
+            else:
+                st.dataframe(insight_df, use_container_width=True, hide_index=True)
+
+        with st.expander("Lap analysis and consistency tables", expanded=False):
+            st.subheader("Lap Analysis")
+            if lap_error:
+                st.error(f"Lap analysis unavailable: {lap_error}")
+            elif lap_df.empty:
+                st.info("Run the pipeline for this session to populate lap analysis.")
+            else:
+                display_df = lap_df[
+                    [
+                        "driver_code",
+                        "lap_number",
+                        "compound",
+                        "stint",
+                        "lap_time_seconds",
+                        "delta_to_fastest_ms",
+                        "top_speed_kph",
+                    ]
+                ].copy()
+                display_df.columns = [
+                    "Driver",
+                    "Lap",
+                    "Compound",
+                    "Stint",
+                    "Lap Time (s)",
+                    "Delta (ms)",
+                    "Top Speed",
+                ]
+                st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+            st.subheader("Driver Consistency")
+            if consistency_error:
+                st.error(f"Consistency view unavailable: {consistency_error}")
+            elif full_consistency_df.empty:
+                st.info("No consistency summary available for this session.")
+            else:
+                display_df = full_consistency_df[
+                    [
+                        "driver_code",
+                        "lap_count",
+                        "avg_lap_time_ms",
+                        "lap_time_stddev_ms",
+                        "consistency_index",
+                    ]
+                ].copy()
+                display_df["avg_lap_time_ms"] = _ms_to_seconds(display_df["avg_lap_time_ms"])
+                display_df.columns = [
+                    "Driver",
+                    "Laps",
+                    "Avg Lap (s)",
+                    "Std Dev (ms)",
+                    "Consistency",
+                ]
+                st.dataframe(display_df, use_container_width=True, hide_index=True)
+    with artifact_right:
+        with st.expander("Grounded explanations", expanded=True):
+            st.subheader("Grounded Explanations")
+            st.caption("Deterministic explanation output retained as a supporting narrative layer.")
+            if explanation_error:
+                st.error(f"Explanations unavailable: {explanation_error}")
+            elif explanation_df.empty:
+                st.info("No explanations available.")
+            else:
+                for row in explanation_df.to_dict("records"):
+                    _render_story_card(
+                        str(row.get("explanation_type", "Explanation")),
+                        str(row.get("explanation_text", "")),
+                        "grounded explanation",
+                        "#d58cff",
+                    )
+
+        with st.expander("Pipeline status and artifact availability", expanded=False):
+            _render_latest_run_summary(latest_run_data, latest_run_error)
 
 if pipeline_result:
     with st.expander("Pipeline artifact response", expanded=False):
