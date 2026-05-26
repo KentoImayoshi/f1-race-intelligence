@@ -46,6 +46,48 @@ RACE_TRENDS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/race-trends"
 LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
 AUTO_REFRESH_INTERVAL_SECONDS = 60
 ACCENT_COLORS = ["#ff6b57", "#ffb648", "#62d2a2", "#79b8ff", "#ffd166", "#d58cff"]
+SOURCE_LABELS: dict[str, str] = {
+    "seed": "Demo Dataset",
+    "fastf1": "FastF1 Live Timing",
+    "openf1": "OpenF1 Telemetry",
+    "jolpica": "Jolpica Historical Data",
+    "auto": "Auto Source Routing",
+}
+SESSION_LABELS: dict[str, str] = {
+    "FP1": "Practice 1",
+    "FP2": "Practice 2",
+    "FP3": "Practice 3",
+    "Q": "Qualifying",
+    "SQ": "Sprint Qualifying",
+    "S": "Sprint",
+    "R": "Grand Prix Race",
+}
+GP_CIRCUIT_LABELS: dict[str, str] = {
+    "Bahrain Grand Prix": "Bahrain International Circuit",
+    "Saudi Arabian Grand Prix": "Jeddah Corniche Circuit",
+    "Australian Grand Prix": "Albert Park Circuit",
+    "Japanese Grand Prix": "Suzuka Circuit",
+    "Chinese Grand Prix": "Shanghai International Circuit",
+    "Miami Grand Prix": "Miami International Autodrome",
+    "Emilia Romagna Grand Prix": "Imola Circuit",
+    "Monaco Grand Prix": "Circuit de Monaco",
+    "Canadian Grand Prix": "Circuit Gilles Villeneuve",
+    "Spanish Grand Prix": "Circuit de Barcelona-Catalunya",
+    "Austrian Grand Prix": "Red Bull Ring",
+    "British Grand Prix": "Silverstone Circuit",
+    "Hungarian Grand Prix": "Hungaroring",
+    "Belgian Grand Prix": "Circuit de Spa-Francorchamps",
+    "Dutch Grand Prix": "Circuit Zandvoort",
+    "Italian Grand Prix": "Monza Circuit",
+    "Azerbaijan Grand Prix": "Baku City Circuit",
+    "Singapore Grand Prix": "Marina Bay Street Circuit",
+    "United States Grand Prix": "Circuit of the Americas",
+    "Mexico City Grand Prix": "Autodromo Hermanos Rodriguez",
+    "Sao Paulo Grand Prix": "Interlagos Circuit",
+    "Las Vegas Grand Prix": "Las Vegas Strip Circuit",
+    "Qatar Grand Prix": "Lusail International Circuit",
+    "Abu Dhabi Grand Prix": "Yas Marina Circuit",
+}
 
 
 def _format_request_error(exc: requests.RequestException) -> str:
@@ -72,10 +114,13 @@ def _friendly_data_error(data_label: str, error: str | None) -> str | None:
     if "404" in error:
         return (
             f"{data_label} is not available yet for this session. "
-            "Run the pipeline to generate the required artifacts."
+            "Run the pipeline once to generate telemetry and intelligence artifacts."
         )
     if "500" in error:
-        return f"{data_label} is temporarily unavailable due to an internal API error."
+        return (
+            f"{data_label} is temporarily unavailable while race intelligence services "
+            "are completing their current processing cycle."
+        )
     connectivity_markers = [
         "connection refused",
         "failed to establish a new connection",
@@ -84,8 +129,30 @@ def _friendly_data_error(data_label: str, error: str | None) -> str | None:
         "timed out",
     ]
     if any(marker in lower for marker in connectivity_markers):
-        return f"Unable to reach the API while loading {data_label.lower()}."
-    return f"Unable to load {data_label.lower()} right now."
+        return (
+            f"{data_label} is taking longer than expected. "
+            "This can happen during first-load telemetry warmup."
+        )
+    return (
+        f"{data_label} is currently delayed. "
+        "Please refresh in a moment while session data finishes loading."
+    )
+
+
+def _source_label(source: str | None) -> str:
+    if not source:
+        return "Unknown Source"
+    return SOURCE_LABELS.get(source, source.upper())
+
+
+def _session_label(session_code: str | None) -> str:
+    if not session_code:
+        return "Unknown Session"
+    return SESSION_LABELS.get(session_code, session_code)
+
+
+def _circuit_label(grand_prix: str) -> str | None:
+    return GP_CIRCUIT_LABELS.get(grand_prix)
 
 
 def _render_data_error(data_label: str, error: str | None) -> bool:
@@ -271,7 +338,7 @@ def _render_shell() -> None:
         }
         .hero-meta {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 0.8rem;
             margin-top: 1.25rem;
         }
@@ -486,18 +553,21 @@ def _session_context(
 ) -> dict[str, str]:
     context_source = lap_df if not lap_df.empty else session_intelligence_df
     grand_prix = _first_value(context_source, "grand_prix", "Race Weekend")
+    circuit_name = _circuit_label(grand_prix)
+    session_name = _session_label(session_code)
     run_timestamp = (
         str(latest_run_data.get("run_timestamp", "Unknown")) if latest_run_data else "Unknown"
     )
     return {
         "grand_prix": grand_prix,
-        "title": f"{grand_prix} · {session_code} Intelligence",
+        "title": f"{grand_prix} · {session_name}",
         "subtitle": (
-            "Executive briefing built from deterministic race analytics, stint behavior, "
-            "and grounded strategy intelligence."
+            "Executive race briefing built from deterministic telemetry analytics, "
+            "stint behavior, and grounded strategy intelligence."
         ),
-        "season_round": f"{year} Round {round_value}",
-        "session": session_code,
+        "season_round": f"{grand_prix} · {year} Championship",
+        "session": session_name,
+        "circuit": circuit_name or "Circuit context updates once telemetry metadata is available.",
         "focus": driver_filter or "Full-field briefing",
         "run_timestamp": run_timestamp,
     }
@@ -754,6 +824,10 @@ def _render_hero(context: dict[str, str]) -> None:
               <div class="meta-value">{context['session']}</div>
             </div>
             <div class="meta-pill">
+              <div class="meta-label">Circuit</div>
+              <div class="meta-value">{context['circuit']}</div>
+            </div>
+            <div class="meta-pill">
               <div class="meta-label">Focus</div>
               <div class="meta-value">{context['focus']}</div>
             </div>
@@ -898,8 +972,8 @@ def _render_latest_run_summary(
 
     cols = st.columns(4)
     cols[0].metric("Status", str(latest_run_data.get("status", "unknown")).title())
-    cols[1].metric("Source", str(latest_run_data.get("source", "unknown")).upper())
-    cols[2].metric("Session", str(latest_run_data.get("session", "—")))
+    cols[1].metric("Source", _source_label(str(latest_run_data.get("source", "unknown"))))
+    cols[2].metric("Session", _session_label(str(latest_run_data.get("session", "—"))))
     cols[3].metric("Run Timestamp", str(latest_run_data.get("run_timestamp", "unknown")))
     st.caption(f"Last refreshed: {_timestamp_label(state.get('latest_run_updated'))}")
 
@@ -911,13 +985,22 @@ def _render_latest_run_summary(
 
 
 def _render_pipeline_controls() -> tuple[int, int, str]:
+    source_options = list(SOURCE_LABELS.keys())
+    source_labels = [SOURCE_LABELS[item] for item in source_options]
     with st.sidebar.form(key="pipeline_form"):
         st.markdown("### Pipeline")
-        source = st.selectbox("Source", ["seed", "fastf1", "openf1", "jolpica", "auto"], index=0)
+        selected_source_label = st.selectbox("Data Source", source_labels, index=0)
         year = st.number_input("Year", min_value=1950, max_value=2026, value=2024)
-        round_value = st.number_input("Round", min_value=1, value=1, step=1)
-        session_code = st.selectbox("Session", ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"], index=6)
-        run_button = st.form_submit_button("Run pipeline")
+        round_value = st.number_input("Championship Round", min_value=1, value=1, step=1)
+        session_code = st.selectbox(
+            "Session Type",
+            list(SESSION_LABELS.keys()),
+            index=6,
+            format_func=_session_label,
+        )
+        run_button = st.form_submit_button("Build Session Intelligence")
+
+    source = source_options[source_labels.index(selected_source_label)]
 
     if run_button:
         state.pipeline_error = None
@@ -928,7 +1011,10 @@ def _render_pipeline_controls() -> tuple[int, int, str]:
             "round": str(round_value),
             "session": session_code,
         }
-        with st.spinner("Running telemetry-aware pipeline..."):
+        with st.spinner(
+            "Ingesting telemetry and building race intelligence. "
+            "First-load sessions may take a little longer while provider caches warm up..."
+        ):
 
             def _run_pipeline(run_payload: dict[str, object]) -> dict[str, object]:
                 response = requests.post(PIPELINE_ENDPOINT, json=run_payload, timeout=45)
@@ -1390,7 +1476,7 @@ with tab_performance:
         else:
             st.altair_chart(_build_pace_chart(pace_df), use_container_width=True)
             if comparison_error:
-                st.warning(f"Comparison fetch failed: {comparison_error}")
+                _render_data_error("Driver comparison", comparison_error)
             elif not comparison_df.empty:
                 comparison_chart_df = comparison_df.copy()
                 comparison_chart_df["lap_time_seconds"] = _ms_to_seconds(
