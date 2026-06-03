@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 from f1_ingestion.ingestion import map_fastf1_laps
 
@@ -71,3 +72,29 @@ def test_map_fastf1_laps_rejects_missing_lap_number() -> None:
             laps=[{"Driver": "VER", "LapNumber": None}],
             ingested_at="2026-03-13T00:00:00Z",
         )
+
+
+@pytest.mark.unit
+def test_map_fastf1_laps_treats_nat_timing_as_missing() -> None:
+    records = map_fastf1_laps(
+        season=2024,
+        round_number=1,
+        grand_prix="Bahrain Grand Prix",
+        session="R",
+        laps=[
+            {
+                "Driver": "VER",
+                "LapNumber": 1,
+                "LapTime": pd.NaT,
+                "Sector1Time": pd.NaT,
+                "Sector2Time": pd.Timedelta(seconds=31),
+                "Sector3Time": None,
+            }
+        ],
+        ingested_at="2026-03-13T00:00:00Z",
+    )
+
+    assert records[0].lap_time_ms is None
+    assert records[0].sector_1_ms is None
+    assert records[0].sector_2_ms == 31000
+    assert records[0].sector_3_ms is None

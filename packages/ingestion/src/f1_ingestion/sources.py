@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from math import isfinite
 from typing import Mapping, Sequence
 
 import httpx
@@ -1254,11 +1255,14 @@ def _parse_optional_time_to_ms(value: object) -> int | None:
 
     total_seconds = getattr(value, "total_seconds", None)
     if callable(total_seconds):
-        return int(round(float(total_seconds()) * 1000))
+        seconds = float(total_seconds())
+        if not isfinite(seconds) or seconds <= 0:
+            return None
+        return int(round(seconds * 1000))
 
     if isinstance(value, (int, float)):
         numeric = float(value)
-        if numeric <= 0:
+        if not isfinite(numeric) or numeric <= 0:
             return None
         return int(round(numeric * 1000))
 

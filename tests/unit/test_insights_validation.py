@@ -61,3 +61,40 @@ def test_insights_reject_top_n_leq_zero(tmp_path: Path) -> None:
             output_dir=tmp_path,
             top_n=0,
         )
+
+
+@pytest.mark.unit
+def test_top_driver_insights_drop_rows_without_driver_code(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "baseline_session_driver_scores.parquet"
+
+    table = pa.Table.from_pylist(
+        [
+            {
+                "season": 2024,
+                "round": 1,
+                "session": "R",
+                "driver_code": None,
+                "score": 2.0,
+                "position_numeric": 1,
+                "model_generated_at": "2026-03-13T00:00:00Z",
+            },
+            {
+                "season": 2024,
+                "round": 1,
+                "session": "R",
+                "driver_code": "ver",
+                "score": 1.5,
+                "position_numeric": 2,
+                "model_generated_at": "2026-03-13T00:00:00Z",
+            },
+        ]
+    )
+    pq.write_table(table, baseline_path)
+
+    output_path = build_top_driver_insights(
+        baseline_path=baseline_path,
+        output_dir=tmp_path,
+    )
+
+    rows = pq.read_table(output_path).to_pylist()
+    assert [row["driver_code"] for row in rows] == ["VER"]
