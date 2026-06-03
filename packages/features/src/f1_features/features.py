@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import datetime, timezone
 from math import sqrt
@@ -65,6 +66,8 @@ REQUIRED_TELEMETRY_COLUMNS = {
     "source",
     "ingested_at",
 }
+
+logger = logging.getLogger(__name__)
 
 
 def build_session_features(*, processed_path: Path, output_dir: Path) -> Path:
@@ -131,7 +134,10 @@ def build_session_analytics(
         )
 
     laps = sorted(
-        laps_table.to_pylist(),
+        _valid_rows_with_driver_codes(
+            laps_table.to_pylist(),
+            dataset_name="raw session laps",
+        ),
         key=lambda row: (
             int(row["season"]),
             int(row["round"]),
@@ -141,9 +147,15 @@ def build_session_analytics(
         ),
     )
     if not laps:
-        raise ValueError("Lap analysis requires at least one lap row")
+        raise ValueError("Lap analysis requires at least one lap row with a valid driver_code")
 
-    telemetry_map = {_lap_key(row): row for row in telemetry_table.to_pylist()}
+    telemetry_map = {
+        _lap_key(row): row
+        for row in _valid_rows_with_driver_codes(
+            telemetry_table.to_pylist(),
+            dataset_name="raw session telemetry",
+        )
+    }
 
     analysis_generated_at = _timestamp_now()
     fastest_lap_ms = min(
@@ -598,6 +610,33 @@ def _require_text(value: object, field: str, *, index: int) -> None:
         raise ValueError(f"Missing required value: {field} (row {index})")
     if not str(value).strip():
         raise ValueError(f"Missing required value: {field} (row {index})")
+
+
+def _valid_rows_with_driver_codes(
+    rows: list[dict[str, object]],
+    *,
+    dataset_name: str,
+) -> list[dict[str, object]]:
+    valid_rows: list[dict[str, object]] = []
+    malformed: list[int] = []
+    for index, row in enumerate(rows):
+        driver_code = row.get("driver_code")
+        if driver_code is None or not str(driver_code).strip():
+            malformed.append(index)
+            continue
+        row["driver_code"] = str(driver_code).strip().upper()
+        valid_rows.append(row)
+
+    if malformed:
+        logger.warning(
+            "dropped malformed rows with missing driver_code",
+            extra={
+                "dataset": dataset_name,
+                "malformed_row_indexes": malformed[:10],
+                "malformed_row_count": len(malformed),
+            },
+        )
+    return valid_rows
 
 
 __all__ = [

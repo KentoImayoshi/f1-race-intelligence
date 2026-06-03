@@ -4,7 +4,10 @@ Version: 0.1.0
 Summary: Placeholder package
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
+Requires-Dist: httpx>=0.27
+Requires-Dist: pyarrow>=14.0.0
+Requires-Dist: fastf1>=3.3.0
 
 # f1-ingestion
 
-Placeholder package.
+Real-data ingestion adapters for seed, FastF1, OpenF1, and Jolpica sources.

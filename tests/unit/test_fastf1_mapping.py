@@ -25,6 +25,25 @@ def test_map_fastf1_results_to_raw_contract() -> None:
 
 
 @pytest.mark.unit
+def test_map_fastf1_results_uses_abbreviation_column() -> None:
+    records = [
+        {"Abbreviation": "VER", "Position": 1, "Time": "1:31:44.742"},
+        {"Abbreviation": "PER", "Position": 2, "Time": "22.457"},
+    ]
+
+    results = map_fastf1_results(
+        season=2024,
+        round_number=1,
+        session="R",
+        results=records,
+        ingested_at="2026-03-13T00:00:00Z",
+    )
+
+    assert [record.driver_code for record in results] == ["VER", "PER"]
+    assert [record.lap_time_ms for record in results] == [5504742, 22457]
+
+
+@pytest.mark.unit
 def test_map_fastf1_results_rejects_empty_driver() -> None:
     records = [{"Driver": None, "Position": 1, "Time": "1:32.123"}]
 

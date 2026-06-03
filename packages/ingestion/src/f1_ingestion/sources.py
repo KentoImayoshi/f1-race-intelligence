@@ -1052,7 +1052,7 @@ def map_fastf1_results(
     mapped: list[RawSessionResult] = []
 
     for index, row in enumerate(results):
-        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        driver_code = _fastf1_driver_code(row, index=index)
         position = _require_int(row.get("Position"), "Position", index=index)
         lap_time_ms = _parse_time_to_ms(row.get("Time"))
 
@@ -1084,7 +1084,7 @@ def map_fastf1_laps(
     mapped: list[RawSessionLap] = []
 
     for index, row in enumerate(laps):
-        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        driver_code = _fastf1_driver_code(row, index=index)
         lap_number = _require_int(row.get("LapNumber"), "LapNumber", index=index)
         compound = _optional_string(row.get("Compound"))
         stint = _optional_int(row.get("Stint"))
@@ -1125,7 +1125,7 @@ def map_fastf1_telemetry(
     telemetry: list[RawSessionTelemetry] = []
 
     for index, row in enumerate(laps):
-        driver_code = _require_driver_code(row.get("Driver"), index=index)
+        driver_code = _fastf1_driver_code(row, index=index)
         lap_number = _require_int(row.get("LapNumber"), "LapNumber", index=index)
         telemetry.append(
             RawSessionTelemetry(
@@ -1194,6 +1194,26 @@ def _require_driver_code(value: object, *, index: int) -> str:
     if not driver:
         raise ValueError(f"Driver code is required (row {index})")
     return driver
+
+
+def _fastf1_driver_code(row: Mapping[str, object], *, index: int) -> str:
+    for key in ("Driver", "Abbreviation", "DriverCode", "DriverId"):
+        value = _optional_string(row.get(key))
+        if value:
+            if key == "DriverId" and len(value) > 3:
+                return _derive_driver_code_from_name(value.replace("_", " "))
+            return value.upper()
+
+    full_name = _optional_string(row.get("FullName"))
+    if full_name:
+        return _derive_driver_code_from_name(full_name)
+
+    available = ", ".join(sorted(str(key) for key in row.keys())) or "none"
+    raise ValueError(
+        f"Driver code is required (row {index}); "
+        "expected one of Driver, Abbreviation, DriverCode, DriverId, or FullName. "
+        f"Available columns: {available}"
+    )
 
 
 def _require_int(value: object, label: str, *, index: int | None = None) -> int:

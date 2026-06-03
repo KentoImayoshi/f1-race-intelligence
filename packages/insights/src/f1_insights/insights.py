@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -105,6 +106,8 @@ REQUIRED_PACE_COLUMNS = {
     "pace_trend",
 }
 
+logger = logging.getLogger(__name__)
+
 
 def build_top_driver_insights(*, baseline_path: Path, output_dir: Path, top_n: int = 3) -> Path:
     """Build top driver insights per session from baseline scores."""
@@ -118,7 +121,7 @@ def build_top_driver_insights(*, baseline_path: Path, output_dir: Path, top_n: i
         raise ValueError(f"Missing required baseline columns: {missing_list}")
 
     insight_generated_at = _timestamp_now()
-    rows = table.to_pylist()
+    rows = _valid_rows_with_driver_codes(table.to_pylist(), label="baseline")
     grouped: dict[tuple[int, int, str], list[dict[str, object]]] = defaultdict(list)
     for row in rows:
         grouped[_session_key(row)].append(row)
@@ -942,11 +945,41 @@ def _read_rows(path: Path, required_columns: set[str], label: str) -> list[dict[
     missing = required_columns.difference(table.schema.names)
     if missing:
         raise ValueError(f"Missing required {label} columns: {', '.join(sorted(missing))}")
-    return table.to_pylist()
+    rows = table.to_pylist()
+    if "driver_code" in required_columns:
+        return _valid_rows_with_driver_codes(rows, label=label)
+    return rows
 
 
 def _write_rows(path: Path, rows: list[dict[str, object]], schema: pa.Schema) -> None:
     pq.write_table(pa.Table.from_pylist(rows, schema=schema), path)
+
+
+def _valid_rows_with_driver_codes(
+    rows: list[dict[str, object]],
+    *,
+    label: str,
+) -> list[dict[str, object]]:
+    valid_rows: list[dict[str, object]] = []
+    malformed: list[int] = []
+    for index, row in enumerate(rows):
+        driver_code = row.get("driver_code")
+        if driver_code is None or not str(driver_code).strip():
+            malformed.append(index)
+            continue
+        row["driver_code"] = str(driver_code).strip().upper()
+        valid_rows.append(row)
+
+    if malformed:
+        logger.warning(
+            "dropped malformed intelligence input rows with missing driver_code",
+            extra={
+                "dataset": label,
+                "malformed_row_indexes": malformed[:10],
+                "malformed_row_count": len(malformed),
+            },
+        )
+    return valid_rows
 
 
 def _schema(columns: list[str]) -> pa.Schema:

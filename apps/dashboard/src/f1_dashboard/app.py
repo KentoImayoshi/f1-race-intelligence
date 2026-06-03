@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, MutableMapping
 
@@ -44,6 +45,7 @@ DRIVER_REPORTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/driver-repor
 STRATEGY_INSIGHTS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/strategy-insights"
 RACE_TRENDS_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/intelligence/race-trends"
 LATEST_RUN_ENDPOINT = f"{API_BASE_URL}{API_PREFIX}/meta/last-run"
+JOLPICA_RACES_ENDPOINT_TEMPLATE = "https://api.jolpi.ca/ergast/f1/{year}/races/"
 AUTO_REFRESH_INTERVAL_SECONDS = 60
 ACCENT_COLORS = ["#ff6b57", "#ffb648", "#62d2a2", "#79b8ff", "#ffd166", "#d58cff"]
 SOURCE_LABELS: dict[str, str] = {
@@ -87,6 +89,133 @@ GP_CIRCUIT_LABELS: dict[str, str] = {
     "Las Vegas Grand Prix": "Las Vegas Strip Circuit",
     "Qatar Grand Prix": "Lusail International Circuit",
     "Abu Dhabi Grand Prix": "Yas Marina Circuit",
+    "Barcelona-Catalunya Grand Prix": "Circuit de Barcelona-Catalunya",
+}
+GP_COUNTRY_LABELS: dict[str, str] = {
+    "Bahrain Grand Prix": "Bahrain",
+    "Saudi Arabian Grand Prix": "Saudi Arabia",
+    "Australian Grand Prix": "Australia",
+    "Japanese Grand Prix": "Japan",
+    "Chinese Grand Prix": "China",
+    "Miami Grand Prix": "United States",
+    "Emilia Romagna Grand Prix": "Italy",
+    "Monaco Grand Prix": "Monaco",
+    "Canadian Grand Prix": "Canada",
+    "Spanish Grand Prix": "Spain",
+    "Austrian Grand Prix": "Austria",
+    "British Grand Prix": "United Kingdom",
+    "Hungarian Grand Prix": "Hungary",
+    "Belgian Grand Prix": "Belgium",
+    "Dutch Grand Prix": "Netherlands",
+    "Italian Grand Prix": "Italy",
+    "Azerbaijan Grand Prix": "Azerbaijan",
+    "Singapore Grand Prix": "Singapore",
+    "United States Grand Prix": "United States",
+    "Mexico City Grand Prix": "Mexico",
+    "Sao Paulo Grand Prix": "Brazil",
+    "Las Vegas Grand Prix": "United States",
+    "Qatar Grand Prix": "Qatar",
+    "Abu Dhabi Grand Prix": "United Arab Emirates",
+    "Barcelona-Catalunya Grand Prix": "Spain",
+}
+
+
+@dataclass(frozen=True)
+class F1Event:
+    round_number: int
+    name: str
+    circuit: str
+    country: str
+
+
+def _event(round_number: int, name: str) -> F1Event:
+    return F1Event(
+        round_number=round_number,
+        name=name,
+        circuit=GP_CIRCUIT_LABELS.get(name, "Circuit unavailable"),
+        country=GP_COUNTRY_LABELS.get(name, "Country unavailable"),
+    )
+
+
+FALLBACK_EVENTS_BY_SEASON: dict[int, list[F1Event]] = {
+    2024: [
+        _event(1, "Bahrain Grand Prix"),
+        _event(2, "Saudi Arabian Grand Prix"),
+        _event(3, "Australian Grand Prix"),
+        _event(4, "Japanese Grand Prix"),
+        _event(5, "Chinese Grand Prix"),
+        _event(6, "Miami Grand Prix"),
+        _event(7, "Emilia Romagna Grand Prix"),
+        _event(8, "Monaco Grand Prix"),
+        _event(9, "Canadian Grand Prix"),
+        _event(10, "Spanish Grand Prix"),
+        _event(11, "Austrian Grand Prix"),
+        _event(12, "British Grand Prix"),
+        _event(13, "Hungarian Grand Prix"),
+        _event(14, "Belgian Grand Prix"),
+        _event(15, "Dutch Grand Prix"),
+        _event(16, "Italian Grand Prix"),
+        _event(17, "Azerbaijan Grand Prix"),
+        _event(18, "Singapore Grand Prix"),
+        _event(19, "United States Grand Prix"),
+        _event(20, "Mexico City Grand Prix"),
+        _event(21, "Sao Paulo Grand Prix"),
+        _event(22, "Las Vegas Grand Prix"),
+        _event(23, "Qatar Grand Prix"),
+        _event(24, "Abu Dhabi Grand Prix"),
+    ],
+    2025: [
+        _event(1, "Australian Grand Prix"),
+        _event(2, "Chinese Grand Prix"),
+        _event(3, "Japanese Grand Prix"),
+        _event(4, "Bahrain Grand Prix"),
+        _event(5, "Saudi Arabian Grand Prix"),
+        _event(6, "Miami Grand Prix"),
+        _event(7, "Emilia Romagna Grand Prix"),
+        _event(8, "Monaco Grand Prix"),
+        _event(9, "Spanish Grand Prix"),
+        _event(10, "Canadian Grand Prix"),
+        _event(11, "Austrian Grand Prix"),
+        _event(12, "British Grand Prix"),
+        _event(13, "Belgian Grand Prix"),
+        _event(14, "Hungarian Grand Prix"),
+        _event(15, "Dutch Grand Prix"),
+        _event(16, "Italian Grand Prix"),
+        _event(17, "Azerbaijan Grand Prix"),
+        _event(18, "Singapore Grand Prix"),
+        _event(19, "United States Grand Prix"),
+        _event(20, "Mexico City Grand Prix"),
+        _event(21, "Sao Paulo Grand Prix"),
+        _event(22, "Las Vegas Grand Prix"),
+        _event(23, "Qatar Grand Prix"),
+        _event(24, "Abu Dhabi Grand Prix"),
+    ],
+    2026: [
+        _event(1, "Australian Grand Prix"),
+        _event(2, "Chinese Grand Prix"),
+        _event(3, "Japanese Grand Prix"),
+        _event(4, "Bahrain Grand Prix"),
+        _event(5, "Saudi Arabian Grand Prix"),
+        _event(6, "Miami Grand Prix"),
+        _event(7, "Canadian Grand Prix"),
+        _event(8, "Monaco Grand Prix"),
+        _event(9, "Barcelona-Catalunya Grand Prix"),
+        _event(10, "Austrian Grand Prix"),
+        _event(11, "British Grand Prix"),
+        _event(12, "Belgian Grand Prix"),
+        _event(13, "Hungarian Grand Prix"),
+        _event(14, "Dutch Grand Prix"),
+        _event(15, "Italian Grand Prix"),
+        _event(16, "Spanish Grand Prix"),
+        _event(17, "Azerbaijan Grand Prix"),
+        _event(18, "Singapore Grand Prix"),
+        _event(19, "United States Grand Prix"),
+        _event(20, "Mexico City Grand Prix"),
+        _event(21, "Sao Paulo Grand Prix"),
+        _event(22, "Las Vegas Grand Prix"),
+        _event(23, "Qatar Grand Prix"),
+        _event(24, "Abu Dhabi Grand Prix"),
+    ],
 }
 
 
@@ -153,6 +282,93 @@ def _session_label(session_code: str | None) -> str:
 
 def _circuit_label(grand_prix: str) -> str | None:
     return GP_CIRCUIT_LABELS.get(grand_prix)
+
+
+def _country_label(grand_prix: str) -> str | None:
+    return GP_COUNTRY_LABELS.get(grand_prix)
+
+
+def _event_label(event: F1Event) -> str:
+    return event.name
+
+
+def _event_from_payload_row(row: dict[str, object]) -> F1Event | None:
+    try:
+        round_number = int(row["round"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    name = str(row.get("raceName") or "").strip()
+    if not name:
+        return None
+
+    circuit_payload = row.get("Circuit")
+    circuit: dict[str, object] = circuit_payload if isinstance(circuit_payload, dict) else {}
+    location_payload = circuit.get("Location")
+    location: dict[str, object] = location_payload if isinstance(location_payload, dict) else {}
+    circuit_name = str(circuit.get("circuitName") or _circuit_label(name) or "Circuit unavailable")
+    country = str(location.get("country") or _country_label(name) or "Country unavailable")
+
+    return F1Event(
+        round_number=round_number,
+        name=name,
+        circuit=circuit_name,
+        country=country,
+    )
+
+
+def _events_from_jolpica_payload(payload: object) -> list[F1Event]:
+    if not isinstance(payload, dict):
+        return []
+    mr_data = payload.get("MRData")
+    if not isinstance(mr_data, dict):
+        return []
+    race_table = mr_data.get("RaceTable")
+    if not isinstance(race_table, dict):
+        return []
+    races = race_table.get("Races")
+    if not isinstance(races, list):
+        return []
+
+    events = [
+        event
+        for row in races
+        if isinstance(row, dict)
+        for event in [_event_from_payload_row(row)]
+        if event is not None
+    ]
+    return sorted(events, key=lambda event: event.round_number)
+
+
+def _fallback_events_for_season(year: int) -> list[F1Event]:
+    if year in FALLBACK_EVENTS_BY_SEASON:
+        return FALLBACK_EVENTS_BY_SEASON[year]
+    return FALLBACK_EVENTS_BY_SEASON[2024]
+
+
+def _load_events_for_season(year: int, timeout: int = 10) -> list[F1Event]:
+    endpoint = JOLPICA_RACES_ENDPOINT_TEMPLATE.format(year=year)
+    try:
+        response = requests.get(endpoint, timeout=timeout)
+        response.raise_for_status()
+        events = _events_from_jolpica_payload(response.json())
+    except requests.RequestException:
+        events = []
+    return events or _fallback_events_for_season(year)
+
+
+def _pipeline_payload(
+    source: str,
+    year: int,
+    event: F1Event,
+    session_code: str,
+) -> dict[str, object]:
+    return {
+        "source": source,
+        "year": year,
+        "round": str(event.round_number),
+        "session": session_code,
+    }
 
 
 def _render_data_error(data_label: str, error: str | None) -> bool:
@@ -547,13 +763,14 @@ def _session_context(
     session_intelligence_df: pd.DataFrame,
     latest_run_data: dict[str, object] | None,
     year: int,
-    round_value: int,
+    selected_event: F1Event,
     session_code: str,
     driver_filter: str | None,
 ) -> dict[str, str]:
     context_source = lap_df if not lap_df.empty else session_intelligence_df
-    grand_prix = _first_value(context_source, "grand_prix", "Race Weekend")
-    circuit_name = _circuit_label(grand_prix)
+    grand_prix = _first_value(context_source, "grand_prix", selected_event.name)
+    circuit_name = _circuit_label(grand_prix) or selected_event.circuit
+    country = _country_label(grand_prix) or selected_event.country
     session_name = _session_label(session_code)
     run_timestamp = (
         str(latest_run_data.get("run_timestamp", "Unknown")) if latest_run_data else "Unknown"
@@ -565,9 +782,10 @@ def _session_context(
             "Executive race briefing built from deterministic telemetry analytics, "
             "stint behavior, and grounded strategy intelligence."
         ),
-        "season_round": f"{grand_prix} · {year} Championship",
+        "season_event": f"{grand_prix} · {year}",
         "session": session_name,
         "circuit": circuit_name or "Circuit context updates once telemetry metadata is available.",
+        "country": country or "Country context updates once event metadata is available.",
         "focus": driver_filter or "Full-field briefing",
         "run_timestamp": run_timestamp,
     }
@@ -816,8 +1034,8 @@ def _render_hero(context: dict[str, str]) -> None:
           <div class="hero-copy">{context['subtitle']}</div>
           <div class="hero-meta">
             <div class="meta-pill">
-              <div class="meta-label">Weekend</div>
-              <div class="meta-value">{context['season_round']}</div>
+              <div class="meta-label">Grand Prix</div>
+              <div class="meta-value">{context['season_event']}</div>
             </div>
             <div class="meta-pill">
               <div class="meta-label">Session</div>
@@ -826,6 +1044,10 @@ def _render_hero(context: dict[str, str]) -> None:
             <div class="meta-pill">
               <div class="meta-label">Circuit</div>
               <div class="meta-value">{context['circuit']}</div>
+            </div>
+            <div class="meta-pill">
+              <div class="meta-label">Country</div>
+              <div class="meta-value">{context['country']}</div>
             </div>
             <div class="meta-pill">
               <div class="meta-label">Focus</div>
@@ -984,14 +1206,20 @@ def _render_latest_run_summary(
         st.dataframe(artifact_df, use_container_width=True, hide_index=True)
 
 
-def _render_pipeline_controls() -> tuple[int, int, str]:
+def _render_pipeline_controls() -> tuple[int, F1Event, str]:
     source_options = list(SOURCE_LABELS.keys())
     source_labels = [SOURCE_LABELS[item] for item in source_options]
     with st.sidebar.form(key="pipeline_form"):
         st.markdown("### Pipeline")
         selected_source_label = st.selectbox("Data Source", source_labels, index=0)
         year = st.number_input("Year", min_value=1950, max_value=2026, value=2024)
-        round_value = st.number_input("Championship Round", min_value=1, value=1, step=1)
+        event_options = _load_events_for_season(int(year))
+        selected_event = st.selectbox(
+            "Grand Prix",
+            event_options,
+            index=0,
+            format_func=_event_label,
+        )
         session_code = st.selectbox(
             "Session Type",
             list(SESSION_LABELS.keys()),
@@ -1005,12 +1233,7 @@ def _render_pipeline_controls() -> tuple[int, int, str]:
     if run_button:
         state.pipeline_error = None
         state.pipeline_status = "running"
-        payload = {
-            "source": source,
-            "year": year,
-            "round": str(round_value),
-            "session": session_code,
-        }
+        payload = _pipeline_payload(source, int(year), selected_event, session_code)
         with st.spinner(
             "Ingesting telemetry and building race intelligence. "
             "First-load sessions may take a little longer while provider caches warm up..."
@@ -1033,7 +1256,7 @@ def _render_pipeline_controls() -> tuple[int, int, str]:
                 if pipeline_error
                 else None
             )
-    return year, round_value, session_code
+    return int(year), selected_event, session_code
 
 
 def _build_pace_chart(pace_df: pd.DataFrame) -> alt.Chart:
@@ -1225,7 +1448,8 @@ _render_shell()
 if "latest_run_data" not in state:
     _refresh_latest_run()
 
-year, round_value, session_code = _render_pipeline_controls()
+year, selected_event, session_code = _render_pipeline_controls()
+round_value = selected_event.round_number
 pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
@@ -1338,7 +1562,7 @@ context = _session_context(
     session_intelligence_df,
     latest_run_data,
     year,
-    round_value,
+    selected_event,
     session_code,
     driver_filter,
 )

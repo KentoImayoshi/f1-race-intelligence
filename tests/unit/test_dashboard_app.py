@@ -76,6 +76,7 @@ class _RequestsModule(types.ModuleType):
     def __init__(self) -> None:
         super().__init__("requests")
         self.calls: list[tuple[str, dict[str, object] | None]] = []
+        self.posts: list[tuple[str, dict[str, object] | None]] = []
         self.RequestException = Exception
         self.HTTPError = Exception
 
@@ -86,6 +87,8 @@ class _RequestsModule(types.ModuleType):
         return _Response(payload)
 
     def post(self, endpoint: str, json=None, timeout: int = 45) -> _Response:
+        copied_json = dict(json) if json is not None else None
+        self.posts.append((endpoint, copied_json))
         return _Response({})
 
 
@@ -265,6 +268,119 @@ def test_dashboard_import_uses_consistent_query_params(
         assert "year" not in params
         assert params["round"] == 1
         assert params["session"] == "R"
+
+
+@pytest.mark.unit
+def test_load_events_for_season_uses_2024_grand_prix_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app_module, _ = _load_dashboard_app(monkeypatch)
+
+    events = app_module._load_events_for_season(2024)
+
+    assert [event.name for event in events[:6]] == [
+        "Bahrain Grand Prix",
+        "Saudi Arabian Grand Prix",
+        "Australian Grand Prix",
+        "Japanese Grand Prix",
+        "Chinese Grand Prix",
+        "Miami Grand Prix",
+    ]
+    assert events[0].round_number == 1
+    assert events[0].circuit == "Bahrain International Circuit"
+    assert events[0].country == "Bahrain"
+
+
+@pytest.mark.unit
+def test_events_from_jolpica_payload_preserves_round_and_event_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app_module, _ = _load_dashboard_app(monkeypatch)
+
+    events = app_module._events_from_jolpica_payload(
+        {
+            "MRData": {
+                "RaceTable": {
+                    "Races": [
+                        {
+                            "round": "2",
+                            "raceName": "Saudi Arabian Grand Prix",
+                            "Circuit": {
+                                "circuitName": "Jeddah Corniche Circuit",
+                                "Location": {"country": "Saudi Arabia"},
+                            },
+                        },
+                        {
+                            "round": "1",
+                            "raceName": "Bahrain Grand Prix",
+                            "Circuit": {
+                                "circuitName": "Bahrain International Circuit",
+                                "Location": {"country": "Bahrain"},
+                            },
+                        },
+                    ]
+                }
+            }
+        }
+    )
+
+    assert [(event.round_number, event.name) for event in events] == [
+        (1, "Bahrain Grand Prix"),
+        (2, "Saudi Arabian Grand Prix"),
+    ]
+    assert events[1].circuit == "Jeddah Corniche Circuit"
+    assert events[1].country == "Saudi Arabia"
+
+
+@pytest.mark.unit
+def test_pipeline_payload_keeps_existing_round_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app_module, _ = _load_dashboard_app(monkeypatch)
+    event = app_module.F1Event(
+        round_number=6,
+        name="Miami Grand Prix",
+        circuit="Miami International Autodrome",
+        country="United States",
+    )
+
+    payload = app_module._pipeline_payload("auto", 2024, event, "R")
+
+    assert payload == {
+        "source": "auto",
+        "year": 2024,
+        "round": "6",
+        "session": "R",
+    }
+
+
+@pytest.mark.unit
+def test_session_context_uses_selected_event_before_artifacts_load(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app_module, _ = _load_dashboard_app(monkeypatch)
+    event = app_module.F1Event(
+        round_number=6,
+        name="Miami Grand Prix",
+        circuit="Miami International Autodrome",
+        country="United States",
+    )
+
+    context = app_module._session_context(
+        app_module.pd.DataFrame(),
+        app_module.pd.DataFrame(),
+        None,
+        2024,
+        event,
+        "R",
+        None,
+    )
+
+    assert context["grand_prix"] == "Miami Grand Prix"
+    assert context["season_event"] == "Miami Grand Prix · 2024"
+    assert context["circuit"] == "Miami International Autodrome"
+    assert context["country"] == "United States"
+    assert context["session"] == "Grand Prix Race"
 
 
 @pytest.mark.unit
