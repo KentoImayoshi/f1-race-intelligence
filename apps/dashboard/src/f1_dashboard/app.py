@@ -11,7 +11,7 @@ from streamlit import session_state as state
 from streamlit_autorefresh import st_autorefresh
 
 from f1_dashboard.operator_loop import build_operator_feedback, execute_pipeline_run
-
+from f1_dashboard.styles.theme import apply_theme
 
 def _config_value(secret_key: str, env_var: str, default: str) -> str:
     try:
@@ -1442,14 +1442,22 @@ def _build_strategy_strength_chart(stint_df: pd.DataFrame) -> alt.Chart:
     )
 
 
-st.set_page_config(page_title="F1 Telemetry Intelligence", layout="wide")
+st.set_page_config(
+    page_title="F1 Telemetry Intelligence",
+    layout="wide",
+)
+
+apply_theme()
+
 _render_shell()
 
 if "latest_run_data" not in state:
     _refresh_latest_run()
 
 year, selected_event, session_code = _render_pipeline_controls()
+
 round_value = selected_event.round_number
+
 pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
