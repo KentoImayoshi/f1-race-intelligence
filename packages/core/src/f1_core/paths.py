@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-DATA_DIR = Path("data")
+ROOT_DIR = Path(__file__).resolve().parents[4]
+DATA_DIR = ROOT_DIR / "data"
 
 
 def _ensure_dir(path: Path) -> Path:
@@ -41,6 +42,8 @@ def llm_dir() -> Path:
 def artifacts_dir() -> Path:
     return _ensure_dir(data_dir() / "artifacts")
 
+def cache_dir() -> Path:
+    return _ensure_dir(ROOT_DIR / ".cache" / "fastf1")
 
 def run_manifests_dir() -> Path:
     return _ensure_dir(artifacts_dir() / "run_manifests")
