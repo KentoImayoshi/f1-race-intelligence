@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from f1_api.api.routes import (
     analytics,
+    circuits,
     explanations,
     health,
     insights,
@@ -20,3 +21,6 @@ router.include_router(explanations.router)
 router.include_router(models.router)
 router.include_router(meta.router)
 router.include_router(pipeline.router)
+router.include_router(analytics.router)
+router.include_router(circuits.router)
+router.include_router(insights.router)
