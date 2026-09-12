@@ -11,10 +11,11 @@ from streamlit import session_state as state
 from streamlit_autorefresh import st_autorefresh
 
 from f1_dashboard.views import (
-    artifacts,
+    executive,
     circuit,
     drivers,
     strategy,
+    artifacts,
 )
 
 from f1_dashboard.operator_loop import build_operator_feedback, execute_pipeline_run
@@ -1452,6 +1453,7 @@ def _build_strategy_strength_chart(stint_df: pd.DataFrame) -> alt.Chart:
 st.set_page_config(
     page_title="F1 Telemetry Intelligence",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 apply_theme()
@@ -1469,8 +1471,15 @@ page = st.sidebar.radio(
     ),
 )
 
+if "latest_run_data" not in state:
+    _refresh_latest_run()
+
+year, selected_event, session_code = _render_pipeline_controls()
+round_value = selected_event.round_number
+
+# Navegação das páginas
 if page == "Circuit Intelligence":
-    circuit.render()
+    circuit.render(year, selected_event, session_code)
     st.stop()
 
 if page == "Driver Analytics":
@@ -1485,19 +1494,12 @@ if page == "Artifact Explorer":
     artifacts.render()
     st.stop()
 
-if "latest_run_data" not in state:
-    _refresh_latest_run()
-
-year, selected_event, session_code = _render_pipeline_controls()
-
-round_value = selected_event.round_number
-
+# Executive Briefing continua daqui para baixo
 pipeline_status = state.get("pipeline_status")
 pipeline_error = state.get("pipeline_error")
 pipeline_result = state.get("pipeline_result")
 latest_run_data = state.get("latest_run_data")
 latest_run_error = state.get("latest_run_error")
-
 base_params = _build_params(
     year=year,
     round_value=round_value,
