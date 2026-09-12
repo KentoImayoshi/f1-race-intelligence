@@ -10,6 +10,13 @@ import streamlit as st
 from streamlit import session_state as state
 from streamlit_autorefresh import st_autorefresh
 
+from f1_dashboard.views import (
+    artifacts,
+    circuit,
+    drivers,
+    strategy,
+)
+
 from f1_dashboard.operator_loop import build_operator_feedback, execute_pipeline_run
 from f1_dashboard.styles.theme import apply_theme
 
@@ -1450,6 +1457,33 @@ st.set_page_config(
 apply_theme()
 
 _render_shell()
+
+page = st.sidebar.radio(
+    "🏎 Dashboard",
+    (
+        "Executive Briefing",
+        "Circuit Intelligence",
+        "Driver Analytics",
+        "Strategy Lab",
+        "Artifact Explorer",
+    ),
+)
+
+if page == "Circuit Intelligence":
+    circuit.render()
+    st.stop()
+
+if page == "Driver Analytics":
+    drivers.render()
+    st.stop()
+
+if page == "Strategy Lab":
+    strategy.render()
+    st.stop()
+
+if page == "Artifact Explorer":
+    artifacts.render()
+    st.stop()
 
 if "latest_run_data" not in state:
     _refresh_latest_run()
